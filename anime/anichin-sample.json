@@ -1,0 +1,170 @@
+{
+  "metadata": {
+    "url": "https://anichin.moe/",
+    "scrapeDate": "2026-08-28T18:41:42.527Z"
+  },
+  "homepage": {
+    "totalSections": 13,
+    "sections": [
+      {
+        "name": "Jadwal Rilis",
+        "days": 8,
+        "totalLinks": 40
+      },
+      {
+        "name": "Featured (Slider)",
+        "items": 15
+      },
+      {
+        "name": "Terpopuler Hari Ini",
+        "items": 5
+      },
+      {
+        "name": "Rilisan Terbaru",
+        "items": 20
+      },
+      {
+        "name": "Movie",
+        "items": 5
+      },
+      {
+        "name": "Upcoming Donghua",
+        "items": 1
+      },
+      {
+        "name": "Dropped Project",
+        "items": 5
+      },
+      {
+        "name": "Rekomendasi",
+        "tabs": 5,
+        "totalItems": 21
+      },
+      {
+        "name": "Blog Terbaru",
+        "items": 2
+      },
+      {
+        "name": "Ongoing Series",
+        "items": 50
+      },
+      {
+        "name": "Donghua Paling Populer",
+        "items": 3
+      },
+      {
+        "name": "Donghua Baru",
+        "items": 5
+      },
+      {
+        "name": "Movie Baru",
+        "items": 5
+      }
+    ]
+  },
+  "detailSample": [
+    {
+      "title": "Perfect World",
+      "url": "https://anichin.moe/perfect-world/",
+      "poster": "https://i0.wp.com/anichin.moe/wp-content/uploads/2021/01/Perfect-World-Subtitle-",
+      "rating": {
+        "text": "Rating 9.00",
+        "value": "9.00",
+        "count": "10"
+      },
+      "alternativeNames": "完美世界",
+      "info": [
+        "Status",
+        "Network",
+        "Studio",
+        "Tanggal rilis",
+        "Durasi",
+        "Season",
+        "Negara",
+        "Tipe",
+        "Episode",
+        "Subber",
+        "Diposting oleh",
+        "Ditambahkan",
+        "Diperbarui pada"
+      ],
+      "genres": [
+        "Action",
+        "Adventure",
+        "Fantasy"
+      ],
+      "synopsisLength": 409,
+      "episodeCount": 284,
+      "firstEpisode": {
+        "number": "284",
+        "url": "https://anichin.moe/perfect-world-episode-284-subtitle-indonesia/"
+      }
+    },
+    {
+      "title": "Soul Land 2: The Unrivaled Tang Sect",
+      "url": "https://anichin.moe/soul-land-2-the-unrivaled-tang-sect/",
+      "poster": "https://i0.wp.com/anichin.moe/wp-content/uploads/2023/06/Soul-Land-2-The-Unrival",
+      "rating": {
+        "text": "Rating 8.83",
+        "value": "8.83",
+        "count": "10"
+      },
+      "alternativeNames": "斗罗大陆2绝世唐门",
+      "info": [
+        "Status",
+        "Network",
+        "Studio",
+        "Tanggal rilis",
+        "Durasi",
+        "Season",
+        "Negara",
+        "Tipe",
+        "Episode",
+        "Subber",
+        "Diposting oleh",
+        "Ditambahkan",
+        "Diperbarui pada"
+      ],
+      "genres": [
+        "Action",
+        "Adventure",
+        "Fantasy",
+        "Romance"
+      ],
+      "synopsisLength": 813,
+      "episodeCount": 168,
+      "firstEpisode": {
+        "number": "168",
+        "url": "https://anichin.moe/soul-land-2-the-unrivaled-tang-sect-episode-168-subtitle-indonesia/"
+      }
+    }
+  ],
+  "stream": {
+    "episodeTitle": "Perfect World Episode 284 Subtitle Indonesia",
+    "chain": [
+      {
+        "from": "https://anichin.moe/stream/FBbNKBP3zKG_ww2waGCItOdFM6VWnH-Eu",
+        "next": "https://anichin-player.web.id/index.php?ok=15621872421554",
+        "error": null
+      },
+      {
+        "from": "https://anichin-player.web.id/index.php?ok=15621872421554",
+        "next": "https://ok.ru/videoembed/15621872421554",
+        "error": null
+      },
+      {
+        "from": "https://ok.ru/videoembed/15621872421554",
+        "next": null,
+        "error": null
+      }
+    ],
+    "resolvedStreams": [
+      {
+        "host": "ok.ru",
+        "type": "hls",
+        "urlLength": 251
+      }
+    ],
+    "streamSource": "https://ok6-14.vkuser.net/video.m3u8?cmd=videoPlayerCdn&expires=1788028710656&sr..."
+  }
+}
