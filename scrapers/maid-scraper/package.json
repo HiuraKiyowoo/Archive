@@ -1,0 +1,17 @@
+{
+  "name": "maid-scraper",
+  "version": "1.0.0",
+  "description": "Scraper maid.my.id (manga/manhwa Indonesia) via HTML + WordPress REST API",
+  "type": "module",
+  "main": "scraper.js",
+  "scripts": {
+    "test": "node test/test.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
