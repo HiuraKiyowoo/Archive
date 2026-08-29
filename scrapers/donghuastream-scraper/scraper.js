@@ -55,6 +55,52 @@ function slugFromUrl(url) {
   return m ? m[1] : null;
 }
 
+// ---- homepage (episode terbaru + featured) ----
+
+export async function home() {
+  const html = await httpGet('/', { cacheKey: 'home' });
+  const $ = cheerio.load(html);
+
+  // episode terbaru (grid .bsx)
+  const recent = [];
+  const seenRecent = new Set();
+  $('.bsx').each((_, el) => {
+    const a = $(el).find('a').first();
+    const href = a.attr('href');
+    if (!href || seenRecent.has(href)) return;
+    seenRecent.add(href);
+    const img = $(el).find('img').first();
+    recent.push({
+      title: decodeEntities(a.attr('title') || $(el).find('.tt h2').first().text() || null),
+      url: href,
+      type: $(el).find('.typez').first().text().trim() || null,
+      episode_label: $(el).find('.epx').first().text().trim() || null,
+      poster: img.attr('data-src') || img.attr('src') || null,
+    });
+  });
+
+  // featured (slider .slide-item)
+  const featured = [];
+  $('.slide-item').each((_, el) => {
+    const a = $(el).find('a').first();
+    const href = a.attr('href');
+    const img = $(el).find('img').first();
+    featured.push({
+      title: decodeEntities($(el).find('.title h2, .title h3, .title').first().text() || img.attr('alt') || null),
+      url: href || null,
+      poster: img.attr('data-src') || img.attr('src') || null,
+      rating: $(el).find('.rating').first().text().trim() || null,
+    });
+  });
+
+  return {
+    recent_count: recent.length,
+    recent,
+    featured_count: featured.length,
+    featured,
+  };
+}
+
 // ---- daftar anime (az-lists) ----
 
 export async function animeList(options = {}) {
@@ -226,6 +272,9 @@ async function main() {
   try {
     let result;
     switch (cmd) {
+      case 'home':
+        result = await home();
+        break;
       case 'list':
       case 'anime-list':
         result = await animeList();
