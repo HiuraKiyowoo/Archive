@@ -153,6 +153,120 @@ export async function mangaList(options = {}) {
   return { total_items: items.length, items };
 }
 
+// ---- daftar genre terpusat (/genre-list/) ----
+
+export async function genreList() {
+  const html = await httpGet('/genre-list/', { cacheKey: 'genre-list' });
+  const $ = cheerio.load(html);
+  const genres = [];
+  const seen = new Set();
+  $('ul.achlist li a, a[href*="/genres/"]').each((_, el) => {
+    const href = $(el).attr('href');
+    const m = href ? href.match(/genres\/([^/]+)\//) : null;
+    const slug = m ? m[1] : null;
+    if (!slug || seen.has(slug)) return;
+    seen.add(slug);
+    const name = $(el).contents().filter((i, n) => n.nodeType === 3).text().trim()
+      || $(el).text().replace(/\d+\s*$/, '').trim();
+    const count = $(el).find('span').first().text().trim();
+    genres.push({
+      slug,
+      name: name || slug,
+      count: count ? Number(count) : null,
+      url: toAbs(href),
+    });
+  });
+  return { total_genres: genres.length, genres };
+}
+
+// ---- daftar A-Z semua manga (/manga-list/, 1 halaman, ada type + ID) ----
+
+export async function mangaListAZ() {
+  const html = await httpGet('/manga-list/', { cacheKey: 'manga-list-az' });
+  const $ = cheerio.load(html);
+  const items = [];
+  $('li a.series[href*="/manga/"]').each((_, el) => {
+    const href = $(el).attr('href');
+    const slug = seriesSlugFromUrl(href);
+    if (!slug) return;
+    items.push({
+      slug,
+      title: decodeEntities($(el).text().trim() || slug),
+      url: toAbs(href),
+      type: $(el).closest('li').attr('class') || null,
+      id: Number($(el).attr('rel')) || null,
+    });
+  });
+  return { total_items: items.length, items };
+}
+
+// ---- pencarian lanjutan (/advanced-search/, filter type/status/genre/dll) ----
+// Catatan: param `order` WAJIB agar hasil muncul (default 'latest').
+// Pagination: /advanced-search/page/N/?<params>
+
+export async function advancedSearch(options = {}) {
+  const {
+    type = null,
+    status = null,
+    order = 'latest',
+    genre = null,
+    title = null,
+    author = null,
+    year = null,
+    maxPages = 60,
+  } = options;
+
+  const qs = new URLSearchParams();
+  if (type) qs.set('type', type);
+  if (status) qs.set('status', status);
+  qs.set('order', order);
+  if (genre) (Array.isArray(genre) ? genre : [genre]).forEach((g) => qs.append('genre[]', g));
+  if (title) qs.set('title', title);
+  if (author) qs.set('author', author);
+  if (year) qs.set('yearx', String(year));
+
+  const seen = new Set();
+  const items = [];
+
+  let page = 1;
+  while (page <= maxPages) {
+    const path = `/advanced-search/${page === 1 ? '' : `page/${page}/`}?${qs.toString()}`;
+    const html = await httpGet(path, { cacheKey: `adv:${qs.toString()}:${page}` });
+    const $ = cheerio.load(html);
+
+    let found = 0;
+    $('.flexbox2-item').each((_, el) => {
+      const a = $(el).find('a[href*="/manga/"]').first();
+      const href = a.attr('href');
+      const slug = href ? seriesSlugFromUrl(href) : null;
+      if (!slug || seen.has(slug)) return;
+      seen.add(slug);
+      found++;
+      items.push({
+        slug,
+        title: decodeEntities(a.attr('title') || a.text().trim() || slug),
+        url: toAbs(href),
+        poster: imgSrc($, $(el).find('img').first()),
+      });
+    });
+
+    let lastPage = page;
+    $('a.page-numbers[href]').each((_, el) => {
+      const m = ($(el).attr('href') || '').match(/\/page\/(\d+)\//);
+      if (m) lastPage = Math.max(lastPage, Number(m[1]));
+    });
+
+    if (found === 0 || page >= lastPage) break;
+    page++;
+  }
+
+  return {
+    filters: { type, status, order, genre, title, author, year },
+    total_items: items.length,
+    items,
+  };
+}
+
 // ---- detail series: metadata + daftar chapter ----
 
 export async function series(slugOrUrl) {
@@ -388,6 +502,26 @@ export async function post(url) {
 
 // ---- CLI ----
 
+// Parse arg CLI advanced: key=value (genre bisa diulang).
+// Contoh: advanced type=Manhwa order=latest genre=romance genre=action
+function parseAdvancedArgs(argv) {
+  const opts = {};
+  for (const arg of argv) {
+    const m = arg.match(/^([a-zA-Z]+)=(.*)$/);
+    if (!m) continue;
+    const key = m[1];
+    const val = m[2];
+    if (key === 'genre') {
+      opts.genre = opts.genre ? [...opts.genre, val] : [val];
+    } else if (key === 'year') {
+      opts.year = val;
+    } else {
+      opts[key] = val;
+    }
+  }
+  return opts;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const cmd = args[0] || 'list';
@@ -417,10 +551,21 @@ async function main() {
       case 'genre':
         result = await genre(args[1] || '');
         break;
+      case 'genre-list':
+        result = await genreList();
+        break;
+      case 'az':
+      case 'manga-az':
+        result = await mangaListAZ();
+        break;
+      case 'advanced':
+        result = await advancedSearch(parseAdvancedArgs(args.slice(1)));
+        break;
       default:
         console.error(`Perintah tidak dikenal: ${cmd}`);
         console.error(
-          'Gunakan: home | list | series "slug" | chapter "URL" | post "URL" | search "kata" | genre "slug"'
+          'Gunakan: home | list | az | series "slug" | chapter "URL" | post "URL" | ' +
+          'search "kata" | genre "slug" | genre-list | advanced [type=.. status=.. order=.. genre=.. title=.. author=.. year=..]'
         );
         process.exit(1);
     }

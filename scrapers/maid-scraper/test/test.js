@@ -55,6 +55,29 @@ const tests = [
     assert.ok(r.slug, 'post has slug');
     assert.ok(r.title, 'post has title');
   }],
+  ['genreList returns genres with counts', async () => {
+    const r = await s.genreList();
+    assert.ok(r.total_genres >= 20, `expected >=20 genres, got ${r.total_genres}`);
+    const g = r.genres[0];
+    assert.ok(g.slug, 'genre has slug');
+    assert.ok(g.name, 'genre has name');
+    assert.ok(g.count >= 0, 'genre has count');
+  }],
+  ['mangaListAZ returns all manga with type+id', async () => {
+    const r = await s.mangaListAZ();
+    assert.ok(r.total_items >= 100, `expected >=100 manga, got ${r.total_items}`);
+    const first = r.items[0];
+    assert.ok(first.slug, 'item has slug');
+    assert.ok(first.type, 'item has type');
+    assert.ok(first.id, 'item has id');
+  }],
+  ['advancedSearch filters by type+genre', async () => {
+    const r = await s.advancedSearch({ type: 'Manhwa', genre: 'romance', order: 'latest' });
+    assert.ok(r.total_items >= 1, `expected >=1 result, got ${r.total_items}`);
+    assert.ok(r.items[0].url.includes('/manga/'), 'result url points to /manga/');
+    // hasil harus subset dari semua manga (filter bekerja)
+    assert.ok(r.total_items < 100, 'filter reduced results');
+  }],
 ];
 
 let pass = 0;
