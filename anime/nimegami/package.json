@@ -1,0 +1,13 @@
+{
+  "name": "nimegami-scraper",
+  "version": "1.0.0",
+  "description": "Node.js scraper for nimegami.id (anime streaming & download)",
+  "type": "module",
+  "main": "scraper.js",
+  "scripts": {
+    "test": "node test/test.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  }
+}
