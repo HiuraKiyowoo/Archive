@@ -1,18 +1,55 @@
 import { chromium } from 'playwright';
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import os from 'node:os';
 
 const URL = 'https://donghuastream.org/schedule/';
 
-const browser = await chromium.launch({
-  executablePath: '/root/.cache/ms-playwright/chromium_headless_shell-1237/chrome-headless-shell-linux64/chrome-headless-shell',
+// Cari binary Chromium Playwright yang sudah ter-install, apa pun versinya.
+// Menghindari error "Executable doesn't exist" saat pindah mesin / versi beda.
+function findPlaywrightChromium() {
+  const root = join(os.homedir(), '.cache', 'ms-playwright');
+  if (!existsSync(root)) return null;
+
+  const names = ['chrome-headless-shell-linux64', 'chrome-linux64'];
+  const bins = ['chrome-headless-shell', 'chrome'];
+  try {
+    for (const dir of readdirSync(root)) {
+      for (const name of names) {
+        for (const bin of bins) {
+          const p = join(root, dir, name, bin);
+          if (existsSync(p)) return p;
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+const executablePath = findPlaywrightChromium();
+
+const launchOptions = {
   headless: true,
-  args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-features=PostQuantumKyber'],
-});
+  args: [
+    '--no-sandbox',
+    '--disable-dev-shm-usage',
+    // Penting: tanpanya ClientHello Kyber bisa bikin handshake ke situs
+    // Cloudflare (termasuk donghuastream.org) gagal di sebagian VPS/firewall.
+    '--disable-features=PostQuantumKyber',
+  ],
+};
+if (executablePath) launchOptions.executablePath = executablePath;
+
+const browser = await chromium.launch(launchOptions);
 
 try {
   const page = await browser.newPage({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36' });
   await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
-  // Tunggu AJAX schedule ngisi .listupd (maks 20 detik)
+  // Tunggu blok jadwal terisi (maks 20 detik). Tidak wajib berhasil:
+  // untuk /schedule/ donghuastream, blok harian memang kosong di sisi server.
   await page.waitForFunction(
     () => {
       const boxes = document.querySelectorAll('.bixbox .listupd');
