@@ -1,0 +1,27 @@
+{
+  "name": "cosmicscans-scraper",
+  "version": "1.0.0",
+  "description": "Scraper zero-dependency untuk 03.cosmicscans.to (REST API publik cdncid.csmcscns.id) - manga/manhwa/manhua bahasa Indonesia",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "cosmicscans": "cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js",
+    "cli": "node cli.js"
+  },
+  "keywords": [
+    "scraper",
+    "manga",
+    "manhwa",
+    "manhua",
+    "cosmicscans",
+    "zero-dependency"
+  ],
+  "license": "MIT",
+  "private": true
+}
