@@ -26,7 +26,7 @@ manhwa/*.js
 | `scrapers/kanzenin-scraper` | kanzenin.info | manga/manhwa ID | zero-dep | 27 |
 | `scrapers/anime-indo-scraper` | anime-indo.lol | anime stream+download | zero-dep | 20 |
 | `scrapers/ainz-scraper` | v3.ainzscans01.com | manhwa (API JSON) | zero-dep | 14 |
-| `scrapers/nimegami-scraper` | nimegami.id | anime download | axios + cheerio | 13 |
+| `scrapers/nimegami-scraper` | nimegami.id | anime download+stream | axios + cheerio | 18 |
 | `scrapers/mangasusuku-scraper` | mangasusuku.com | manga/manhwa ID | zero-dep | 12 |
 | `scrapers/komikindo-scraper` | komikindo.ch | komik ID | cheerio | 12 |
 | `scrapers/maid-scraper` | maid.my.id | manga/manhwa ID | axios + cheerio | 10 |

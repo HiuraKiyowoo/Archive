@@ -300,14 +300,6 @@ function extractSlug(url) {
   return m ? m[1] : null;
 }
 
-// parse daftar episode dari HTML content (link download tidak ada di REST,
-// hanya ada di HTML halaman posting, jadi kita fetch halaman HTML-nya)
-async function parseDownloadChaptersFromUrl(postUrl) {
-  if (!postUrl) return [];
-  const html = await httpGet(postUrl, { cacheKey: `html:${postUrl}` });
-  return parseDownloadChaptersFromHtml(html);
-}
-
 export function parseDownloadChaptersFromHtml(html) {
   if (!html) return [];
   const $ = cheerio.load(html);
@@ -347,34 +339,192 @@ function parseEpisodeNumber(text) {
   return m ? Number(m[1]) : null;
 }
 
-// detail dengan fetch HTML bila perlu (untuk link download)
+// ---- metadata dari HTML (tidak tersedia di REST) ----------------------------
+//
+// REST API nimegami TIDAK mengembalikan studio, rating, musim, durasi, subtitle,
+// credit, maupun judul alternatif — semuanya cuma ada di tabel `div.info2` pada
+// halaman HTML. `class_list` REST juga memberi type "post", padahal type asli
+// (TV / ONA / Movie) ada di baris "Type" tabel tersebut.
+// Diverifikasi live 2026-08-31 di /oni-no-hanayome-sub-indo/.
+
+// Baris tabel: <td class="tablex">Label <span>:</span></td><td>nilai</td>
+// Kolom nilai bisa punya class tambahan (ratingx / info_a / seriesx) dan
+// isinya bisa berupa <a> (musim, type, series) — diambil teksnya saja.
+export function parseInfoTable(html) {
+  if (!html) return { meta: {}, categories: [] };
+  const $ = cheerio.load(html);
+  const meta = {};
+  let categories = [];
+
+  $('div.info2 table tr').each((_, tr) => {
+    const $tr = $(tr);
+    const label = $tr.find('td.tablex').first().text().replace(/\s*:\s*$/, '').trim().toLowerCase();
+    if (!label) return;
+    const $val = $tr.find('td').eq(1);
+    const value = $val.text().replace(/\s+/g, ' ').trim();
+    if (value) meta[label] = value;
+    // Kategori = daftar <a> di td.info_a; dipakai sebagai fallback genre.
+    if ($val.hasClass('info_a')) {
+      categories = $val.find('a').toArray().map((a) => $(a).text().trim()).filter(Boolean);
+    }
+  });
+
+  return { meta, categories };
+}
+
+// "7.07 [MAL]" -> { score: 7.07, source: "MAL" }
+function parseRating(raw) {
+  if (!raw) return { score: null, source: null };
+  const m = String(raw).match(/([\d.]+)\s*\[?\s*([A-Za-z]+)?/);
+  if (!m) return { score: null, source: null };
+  const score = Number(m[1]);
+  return { score: Number.isFinite(score) ? score : null, source: m[2] || null };
+}
+
+// "Summer 2026" -> 2026
+function parseYear(raw) {
+  const m = String(raw || '').match(/(19|20)\d{2}/);
+  return m ? Number(m[0]) : null;
+}
+
+// "24 min per ep Menit" -> "24 min per ep"
+function cleanDuration(raw) {
+  if (!raw) return null;
+  return String(raw).replace(/\s*Menit\s*$/i, '').trim() || null;
+}
+
+// Daftar episode + link streaming dari <li class="select-eps" data="BASE64">.
+// data = base64 JSON [{format, url:[...]}, ...]. Ini SATU-SATUNYA sumber link
+// streaming (path /streaming/); #LinkDownload hanya memuat link unduhan mirror.
+export function parseSelectEps(html) {
+  if (!html) return [];
+  const $ = cheerio.load(html);
+  const out = [];
+
+  $('li.select-eps').each((_, li) => {
+    const raw = $(li).attr('data');
+    if (!raw) return;
+    let decoded;
+    try {
+      decoded = JSON.parse(Buffer.from(raw, 'base64').toString('utf-8'));
+    } catch {
+      return; // data rusak -> episode dilewati, bukan dilempar
+    }
+    if (!Array.isArray(decoded)) return;
+
+    const label = $(li).text().replace(/\s+/g, ' ').trim();
+    const num = label.match(/Episode\s*(\d+)/i) || label.match(/(\d+)/);
+    out.push({
+      title: label || null,
+      number: num ? Number(num[1]) : null,
+      streams: decoded.map((d) => ({
+        quality: d.format || null,
+        urls: Array.isArray(d.url) ? d.url : d.url ? [d.url] : [],
+      })),
+    });
+  });
+
+  out.sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+  return out;
+}
+
+// Gabungkan episode dari #LinkDownload (mirror unduhan) dengan li.select-eps
+// (link streaming). Dicocokkan berdasarkan nomor episode; episode yang hanya
+// muncul di salah satu sumber tetap ikut.
+function mergeEpisodes(downloadChapters = [], streamEps = []) {
+  const byNum = new Map();
+
+  for (const c of downloadChapters) {
+    const key = c.number ?? `t:${c.title}`;
+    byNum.set(key, { ...c, streams: [] });
+  }
+
+  for (const e of streamEps) {
+    const key = e.number ?? `t:${e.title}`;
+    const hit = byNum.get(key);
+    if (hit) {
+      hit.streams = e.streams;
+      if (!hit.title) hit.title = e.title;
+    } else {
+      byNum.set(key, {
+        title: e.title,
+        number: e.number,
+        url: null,
+        date: null,
+        downloads: [],
+        streams: e.streams,
+      });
+    }
+  }
+
+  return [...byNum.values()].sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+}
+
+// detail lengkap: REST (id, slug, tanggal, class_list) + HTML (studio, rating,
+// musim, durasi, subtitle, credit, type asli, judul alternatif) + episode
+// gabungan (mirror unduhan dari #LinkDownload + link streaming dari select-eps).
+// Selalu fetch HTML karena metadata di atas tidak ada di REST sama sekali.
 export async function detailWithDownloads(url) {
   const base = await detail(url);
-  if (base.chapters?.length) return base;
-  const htmlChapters = await parseDownloadChaptersFromUrl(base.url || url);
-  return { ...base, chapters: htmlChapters, chapter_count: htmlChapters.length || null };
+  const pageUrl = base.url || url;
+  const html = await httpGet(pageUrl, { cacheKey: `html:${pageUrl}` });
+
+  const { meta, categories } = parseInfoTable(html);
+  const rating = parseRating(meta['rating']);
+  const streamEps = parseSelectEps(html);
+  const downloadChapters = base.chapters?.length
+    ? base.chapters
+    : parseDownloadChaptersFromHtml(html);
+  const chapters = mergeEpisodes(downloadChapters, streamEps);
+
+  return {
+    ...base,
+    // judul bersih dari tabel ("Oni no Hanayome"), tanpa embel "Sub Indo : Episode 1 – 12 (End)"
+    clean_title: meta['judul'] || base.title,
+    alternative_title: meta['judul alternatif'] || null,
+    // type REST selalu "post"; type asli (TV/ONA/Movie) ada di tabel
+    type: meta['type'] || base.type,
+    genres: base.genres?.length ? base.genres : categories,
+    categories,
+    studio: meta['studio'] || null,
+    rating: rating.score,
+    rating_source: rating.source,
+    rating_raw: meta['rating'] || null,
+    season: meta['musim / rilis'] || null,
+    release_year: parseYear(meta['musim / rilis']),
+    duration: cleanDuration(meta['durasi per episode']),
+    subtitle: meta['subtitle'] || null,
+    credit: meta['credit'] || null,
+    series: meta['series'] || base.series,
+    info: meta,
+    chapters,
+    chapter_count: chapters.length || null,
+  };
 }
 
 // ---- chapter (untuk nimegami: konten chapter = daftar link download) -------
-
+//
+// Episode nimegami tidak punya halaman sendiri — semuanya inline di halaman
+// series. Jadi chapter() memakai hasil detailWithDownloads() supaya tiap episode
+// membawa mirror unduhan DAN link streaming sekaligus.
 export async function chapter(url, options = {}) {
   if (!url) throw new Error('chapter: URL wajib diisi');
-  const fetchHtml = options.fetchDownloads ?? true;
-  const post = await detail(url);
-
-  let chapters = post.chapters || [];
-  if (fetchHtml && chapters.length === 0) {
-    chapters = await parseDownloadChaptersFromUrl(post.url || url);
-  }
+  const post = await detailWithDownloads(url);
+  const only = options.number ?? null;
+  const chapters = only == null ? post.chapters : post.chapters.filter((c) => c.number === only);
 
   return {
     id: post.id,
     title: post.title,
+    clean_title: post.clean_title,
     url: post.url,
     synopsis: post.description,
     poster: post.poster,
     genres: post.genres,
     tags: post.tags,
+    studio: post.studio,
+    rating: post.rating,
+    season: post.season,
     chapters,
   };
 }
