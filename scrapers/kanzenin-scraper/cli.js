@@ -42,12 +42,13 @@ const flag = (name, def = null) => {
   return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[i + 1] : def;
 };
 const out = (o) => console.log(JSON.stringify(o, null, 2));
+const has = (name) => argv.includes(`--${name}`);
 
 const usage = `kanzenin-scraper CLI
 
   home                              4 section homepage + rilis chapter terbaru
   feed                              RSS: 10 rilis terakhir (+timestamp ISO)
-  project                           series garapan sendiri tim kanzenin
+  project [--page N] [--all]        series garapan sendiri (20/page, 104 halaman)
   search <query> [--page N]         cari (10/page)
   browse [filter]                   directory /manga/ (27/page)
       --genre <id,id>               ID genre (dari 'genres'), semantik AND
@@ -81,7 +82,7 @@ try {
       out(await feed());
       break;
     case "project":
-      out(await project());
+      out(await project({ page: Number(flag("page", 1)), all: has("all") }));
       break;
     case "search": {
       if (!pos[0]) throw new Error("butuh query");

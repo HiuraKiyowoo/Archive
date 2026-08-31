@@ -305,7 +305,11 @@ export async function browse({ genre = [], status = "", type = "", order = "", p
  * -> { total, letters: {A: n, ...}, items: [{ post_id, slug, url, title, letter }] }
  */
 export async function listMode() {
-  const { body } = await httpGet(`${BASE}/manga/list-mode`);
+  // WAJIB `/manga/?list`, JANGAN `/manga/list-mode/`.
+  // Keduanya render soralist yang sama, TAPI /manga/list-mode/ adalah halaman
+  // statis yang basi (last-modified Juni 2026) dan cuma punya 2328 series.
+  // /manga/?list di-render live -> 2362 series, cocok persis dgn walk browse().
+  const { body } = await httpGet(`${BASE}/manga/?list`);
   const i = body.indexOf('class="soralist"');
   const seg = i >= 0 ? body.slice(i) : body;
   const items = [];
@@ -370,12 +374,25 @@ export async function home() {
 
 /**
  * /project/ — series yang digarap sendiri tim kanzenin.
- * -> { items, count }
+ * ADA pagination (104 halaman, 20/page) — `all: true` untuk walk semuanya.
+ * -> { items, count, page, max_page }
  */
-export async function project() {
-  const { body } = await httpGet(`${BASE}/project/`);
-  const items = allBsxItems(body);
-  return { items, count: items.length };
+export async function project({ page = 1, all = false } = {}) {
+  const url = page > 1 ? `${BASE}/project/page/${page}/` : `${BASE}/project/`;
+  const { body } = await httpGet(url);
+  const max = maxPage(body);
+  if (!all) {
+    const items = allBsxItems(body);
+    return { items, count: items.length, page, max_page: max };
+  }
+  const seen = new Map();
+  for (const it of allBsxItems(body)) seen.set(it.url, it);
+  for (let p = 2; p <= max; p++) {
+    const { body: b } = await httpGet(`${BASE}/project/page/${p}/`);
+    for (const it of allBsxItems(b)) seen.set(it.url, it);
+  }
+  const items = [...seen.values()];
+  return { items, count: items.length, page: 1, max_page: max };
 }
 
 /**

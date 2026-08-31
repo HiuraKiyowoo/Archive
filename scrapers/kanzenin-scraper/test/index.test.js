@@ -19,6 +19,8 @@ import {
 
 const SERIES = "rooftop-sex-king";
 const CHAPTER = "torokeru-tsuma-chichi-chapter-2";
+const UA_TEST =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
 test("genres: 44 genre dgn id numerik + slug unik", async () => {
   const g = await genres();
@@ -90,9 +92,9 @@ test("browse: page melebihi batas -> items kosong, has_next false", async () => 
   console.log(`  [browse edge] page 5 -> 0 item, has_next=false (OK)`);
 }, { timeout: 60000 });
 
-test("listMode: SELURUH katalog 1 request (2000+ series, post_id, per huruf)", async () => {
+test("listMode: SELURUH katalog 1 request (pakai ?list, BUKAN /list-mode/ yg basi)", async () => {
   const lm = await listMode();
-  assert.ok(lm.total >= 2000, `>= 2000 series (dapat ${lm.total})`);
+  assert.ok(lm.total >= 2300, `>= 2300 series (dapat ${lm.total})`);
   assert.equal(lm.items.length, lm.total);
   assert.equal(new Set(lm.items.map((x) => x.slug)).size, lm.total, "slug unik");
   for (const x of lm.items.slice(0, 50)) {
@@ -103,7 +105,13 @@ test("listMode: SELURUH katalog 1 request (2000+ series, post_id, per huruf)", a
   }
   const sum = Object.values(lm.letters).reduce((a, b) => a + b, 0);
   assert.equal(sum, lm.total, "jumlah per huruf = total");
-  console.log(`  [list-mode] ${lm.total} series, ${Object.keys(lm.letters).length} grup huruf, sum cocok`);
+  // /manga/list-mode/ itu halaman STATIS yang basi — harus lebih sedikit
+  const stale = await fetch("https://kanzenin.info/manga/list-mode/", {
+    headers: { "user-agent": UA_TEST },
+  }).then((r) => r.text());
+  const staleCount = (stale.match(/<a class="series[^"]*" rel="\d+"/g) || []).length;
+  assert.ok(staleCount > 0 && staleCount < lm.total, `/list-mode/ (${staleCount}) < ?list (${lm.total})`);
+  console.log(`  [list-mode] ?list=${lm.total} vs /list-mode/=${staleCount} (basi), ${Object.keys(lm.letters).length} grup, sum cocok`);
 }, { timeout: 90000 });
 
 test("home: 4 section + rilis chapter terbaru", async () => {
@@ -136,11 +144,15 @@ test("home: 4 section + rilis chapter terbaru", async () => {
   console.log(`  [home] ${names.map((n) => `${n}(${h.sections[n].length}/${h.sections[n][0].kind})`).join(" ")} | ${h.latest_chapters.length} rilis`);
 }, { timeout: 60000 });
 
-test("project: series garapan sendiri", async () => {
+test("project: series garapan sendiri + pagination (104 halaman)", async () => {
   const p = await project();
   assert.ok(p.count >= 5, `>= 5 series (dapat ${p.count})`);
-  for (const it of p.items) assert.ok(it.series_url.includes("/manga/"), "series_url /manga/");
-  console.log(`  [project] ${p.count} series, #1: ${p.items[0].title}`);
+  assert.ok(p.max_page >= 50, `max_page besar (dapat ${p.max_page})`);
+  for (const it of p.items) assert.ok(it.series_url.includes("/manga/"), "series_url valid");
+  const p2 = await project({ page: 2 });
+  const dup = p2.items.filter((x) => p.items.some((y) => y.url === x.url)).length;
+  assert.equal(dup, 0, "halaman 2 beda dari halaman 1");
+  console.log(`  [project] p1=${p.count} p2=${p2.count} max_page=${p.max_page} dup=${dup}, #1: ${p.items[0].title}`);
 }, { timeout: 60000 });
 
 test("feed: 10 rilis terakhir + timestamp ISO valid", async () => {
@@ -306,6 +318,20 @@ test("chapterImages: URL tanpa kata 'chapter' tetap keparse (im-a-vampire-43)", 
   assert.ok(c.count >= 5, `ada halaman (dapat ${c.count})`);
   console.log(`  [images odd-url] im-a-vampire-43 -> number=${c.number}, ${c.count} halaman`);
 }, { timeout: 60000 });
+
+test("chapterImages: URL gambar http:// juga jalan lewat https://", async () => {
+  const c = await chapterImages(CHAPTER);
+  const httpOnes = c.pages.filter((p) => p.url.startsWith("http://"));
+  assert.ok(httpOnes.length > 0, "chapter ini memang dilayani http://");
+  const u = httpOnes[0].url;
+  const [viaHttp, viaHttps] = await Promise.all([
+    fetch(u, { headers: { "user-agent": UA_TEST } }),
+    fetch(u.replace("http://", "https://"), { headers: { "user-agent": UA_TEST } }),
+  ]);
+  assert.equal(viaHttp.status, 200, "http 200");
+  assert.equal(viaHttps.status, 200, "https 200 (CDN dukung TLS)");
+  console.log(`  [proto] ${httpOnes.length}/${c.count} URL http:// — https:// juga 200, aman di-upgrade`);
+}, { timeout: 90000 });
 
 test("chapterSlug: integer + desimal", () => {
   assert.equal(chapterSlug("x", 5), "x-chapter-5");

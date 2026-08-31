@@ -64,13 +64,17 @@ Berguna untuk polling murah (1 request, ~10 KB).
 
 ---
 
-## `project()`
+## `project({ page = 1, all = false })`
 
-`/project/` — series garapan tim sendiri. Tidak ada pagination di site.
+`/project/` — series garapan tim sendiri. **Ada pagination**: 20 item/halaman, 104 halaman (`/project/page/N/`).
 
 ```js
-{ count: 20, items: [ item, ... ] }
+{ items: [ item, ... ], count, page, max_page: 104 }
 ```
+
+`all: true` walk seluruh 104 halaman (~65 s, 2.068 series unik). Hasilnya subset dari katalog utama — dicek: nol slug yang tidak ada di `listMode()`.
+
+Catatan: `/project/?page=2` **301 redirect** ke `/project/`. Yang benar `/project/page/2/`.
 
 ---
 
@@ -128,11 +132,13 @@ Nilai invalid diabaikan site (fallback ke default), bukan error. `genre` ID tak 
 
 ## `listMode()`
 
-Route `/manga/?list` — **seluruh katalog dalam 1 request** (~2.328 series). Cara termurah untuk full sync.
+Route `/manga/?list` — **seluruh katalog dalam 1 request** (~2.362 series). Cara termurah untuk full sync.
+
+⚠️ Jangan pakai `/manga/list-mode/`. Route itu me-render soralist yang sama tapi **basi** (`last-modified` Juni 2026, cuma 2.328 series — 34 series baru hilang). `/manga/?list` di-render live dan cocok persis dengan hasil walk `browse()`.
 
 ```js
 {
-  total: 2328,
+  total: 2362,
   letters: { "#": 12, A: 118, B: 126, K: 222, M: 229, S: 248, ... },   // 26 grup
   items: [ { post_id, slug, url, title, letter }, ... ]
 }
@@ -222,7 +228,9 @@ Terima slug (`"rooftop-sex-king-chapter-78"`) atau URL penuh.
 
 Parsing nomor menangani semua varian slug yang ada di site: `-chapter-5`, `-chapter-67-5` (= 67.5), `-chapter-45-end`, dan `/im-a-vampire-43/` (tanpa kata "chapter").
 
-Gambar difilter di dalam `#readerarea` dengan aturan **host bukan `kanzenin.info`** — semua halaman reader dilayani CDN eksternal, sementara ads/cover/sidebar selalu di domain site. Sebagian URL memakai `http://` biasa.
+Gambar difilter di dalam `#readerarea` dengan aturan **host bukan `kanzenin.info`** — semua halaman reader dilayani CDN eksternal, sementara ads/cover/sidebar selalu di domain site.
+
+Sebagian URL dirender site sebagai `http://` (contoh `cdnasu.xyz`), tapi CDN-nya melayani `https://` juga — diuji 29/29 URL: `http` 200 dan `https` 200 dengan byte identik. Aman di-upgrade sendiri kalau butuh HTTPS. Referer tidak wajib.
 
 Chapter tidak ada → throw `404`.
 
