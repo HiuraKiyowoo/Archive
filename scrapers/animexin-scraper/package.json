@@ -1,0 +1,25 @@
+{
+  "name": "animexin-scraper",
+  "version": "1.0.0",
+  "description": "Scraper HTTP murni untuk animexin.dev (donghua sub Indonesia/English) - zero dependency, Node >= 18",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "animexin-scraper": "cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js",
+    "cli": "node cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "scraper",
+    "animexin",
+    "donghua",
+    "anime"
+  ],
+  "license": "MIT",
+  "private": true
+}

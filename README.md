@@ -24,6 +24,7 @@ manhwa/*.js
 |---|---|---|---|---|
 | `scrapers/mangatoon-scraper` | mangatoon.mobi | komik, 5 bahasa | zero-dep | 42 |
 | `scrapers/kanzenin-scraper` | kanzenin.info | manga/manhwa ID | zero-dep | 27 |
+| `scrapers/animexin-scraper` | animexin.dev | donghua stream+download | zero-dep | 22 |
 | `scrapers/anime-indo-scraper` | anime-indo.lol | anime stream+download | zero-dep | 20 |
 | `scrapers/ainz-scraper` | v3.ainzscans01.com | manhwa (API JSON) | zero-dep | 14 |
 | `scrapers/nimegami-scraper` | nimegami.id | anime download+stream | axios + cheerio | 18 |
