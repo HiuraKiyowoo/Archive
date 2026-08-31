@@ -1,0 +1,13 @@
+{
+  "name": "ainz-scraper",
+  "version": "1.0.0",
+  "description": "Zero-dep scraper untuk v3.ainzscans01.com (Ainz Scans ID) — SvelteKit + NestJS API di balik Cloudflare lenient",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": { "ainz": "./cli.js" },
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}
