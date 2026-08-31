@@ -1,0 +1,15 @@
+{
+  "name": "mangatoon-scraper",
+  "version": "1.0.0",
+  "description": "Scraper zero-dependency untuk mangatoon.mobi: home, genre+filter, tag, search, detail series, daftar episode, gambar reader, booklist, sitemap 5 bahasa",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": { "mangatoon-scraper": "cli.js" },
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test test/index.test.js",
+    "cli": "node cli.js"
+  },
+  "keywords": ["mangatoon", "scraper", "manga", "comic", "webtoon", "zero-dependency"],
+  "license": "MIT"
+}
