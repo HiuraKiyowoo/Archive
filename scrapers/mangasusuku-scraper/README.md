@@ -1,4 +1,4 @@
-# susu-scraper
+# mangasusuku-scraper
 
 Scraper zero-dependency untuk **mangasusuku.com** (Mangasusu — baca manga/manhwa bahasa Indonesia). Node.js >= 18, tanpa `npm install`.
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import * as s from '../scraper.js';
+import * as s from '../src/index.js';
 
 const SERIES_SLUG = 'furoufushi-shoujo-no-naedoko-ryokouki';
 const CHAPTER_URL =

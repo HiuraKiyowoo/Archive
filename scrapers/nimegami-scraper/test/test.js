@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { home, search, genre, genres, detailWithDownloads, chapter } from '../scraper.js';
+import { home, search, genre, genres, detailWithDownloads, chapter } from '../src/index.js';
 
 function fail(name, err) {
   console.error(`  ${name}  FAIL  ${err.message}`);

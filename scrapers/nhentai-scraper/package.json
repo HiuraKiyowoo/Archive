@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Zero-dependency nhentai scraper (HTTP-first). Parses JSON-LD inline gallery data + search pages.",
   "main": "src/index.js",
+  "bin": { "nhentai-scraper": "./cli.js" },
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test test/",
+    "cli": "node cli.js"
   },
-  "license": "MIT",
-  "engines": { "node": ">=18" }
+  "engines": { "node": ">=18" },
+  "license": "MIT"
 }

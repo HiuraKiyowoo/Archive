@@ -23,28 +23,28 @@ npm install
 ## Perintah (CLI)
 
 ```bash
-node scraper.js home                          # manga + chapter terbaru
-node scraper.js list                          # daftar semua manga (pagination)
-node scraper.js az                            # daftar A-Z semua manga (type + ID)
-node scraper.js series "slug"                 # metadata + daftar chapter
-node scraper.js chapter "URL-chapter"         # daftar gambar chapter
-node scraper.js post "URL-chapter"            # metadata chapter via REST
-node scraper.js search "kata"                 # pencarian manga
-node scraper.js genre "slug"                  # daftar manga per genre
-node scraper.js genre-list                    # semua genre + jumlah
-node scraper.js advanced [key=value ...]      # pencarian lanjutan
+node cli.js home                          # manga + chapter terbaru
+node cli.js list                          # daftar semua manga (pagination)
+node cli.js az                            # daftar A-Z semua manga (type + ID)
+node cli.js series "slug"                 # metadata + daftar chapter
+node cli.js chapter "URL-chapter"         # daftar gambar chapter
+node cli.js post "URL-chapter"            # metadata chapter via REST
+node cli.js search "kata"                 # pencarian manga
+node cli.js genre "slug"                  # daftar manga per genre
+node cli.js genre-list                    # semua genre + jumlah
+node cli.js advanced [key=value ...]      # pencarian lanjutan
 ```
 
 Contoh:
 
 ```bash
-node scraper.js series furoufushi-shoujo-no-naedoko-ryokouki
-node scraper.js chapter "https://www.maid.my.id/furoufushi-shoujo-no-naedoko-ryokouki-chapter-22-2-bahasa-indonesia/"
-node scraper.js search solo
-node scraper.js genre ecchi
-node scraper.js advanced type=Manhwa genre=romance order=latest
-node scraper.js advanced status=completed order=popular
-node scraper.js advanced author=fuj year=2024 order=rating
+node cli.js series furoufushi-shoujo-no-naedoko-ryokouki
+node cli.js chapter "https://www.maid.my.id/furoufushi-shoujo-no-naedoko-ryokouki-chapter-22-2-bahasa-indonesia/"
+node cli.js search solo
+node cli.js genre ecchi
+node cli.js advanced type=Manhwa genre=romance order=latest
+node cli.js advanced status=completed order=popular
+node cli.js advanced author=fuj year=2024 order=rating
 ```
 
 Param `advanced`: `type` (Manga/Manhwa/Manhua/One-shot/Doujin), `status`
@@ -55,7 +55,7 @@ hasil muncul (default `latest`).
 ## API (import modul)
 
 ```js
-import * as s from './scraper.js';
+import * as s from './src/index.js';
 
 await s.home();                 // { total_items, items: [{title,url,poster,chapters[]}] }
 await s.mangaList({ maxPages });

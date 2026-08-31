@@ -14,14 +14,14 @@ npm install
 ## Pemakaian
 
 ```bash
-node scraper.js home
-node scraper.js search "solo leveling"
-node scraper.js search "solo leveling" 2
-node scraper.js genre "action"
-node scraper.js genre "comedy" 2
-node scraper.js genres
-node scraper.js detail "https://nimegami.id/oni-no-hanayome-sub-indo/"
-node scraper.js chapter "https://nimegami.id/oni-no-hanayome-sub-indo/"
+node cli.js home
+node cli.js search "solo leveling"
+node cli.js search "solo leveling" 2
+node cli.js genre "action"
+node cli.js genre "comedy" 2
+node cli.js genres
+node cli.js detail "https://nimegami.id/oni-no-hanayome-sub-indo/"
+node cli.js chapter "https://nimegami.id/oni-no-hanayome-sub-indo/"
 ```
 
 Semua perintah mengeluarkan JSON.

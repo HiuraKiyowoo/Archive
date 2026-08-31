@@ -5,7 +5,7 @@
  * HTTP 200 alone is NOT treated as success.
  */
 'use strict';
-const { home, search, genre, genres, detail, episode, stream } = require('../scraper.js');
+const { home, search, genre, genres, detail, episode, stream } = require('../src/index.js');
 
 let passed = 0, failed = 0;
 const results = [];

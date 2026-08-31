@@ -14,10 +14,10 @@ npm install
 ## Pemakaian
 
 ```bash
-node scraper.js list
-node scraper.js series "a-record-of-mortals-journey-to-immortality-season-5"
-node scraper.js episode "https://donghuastream.org/a-record-of-mortals-journey-to-immortality-season-5-episode-13-ep-189-multiple-subtitles/"
-node scraper.js post "https://donghuastream.org/a-record-of-mortals-journey-to-immortality-season-5-episode-13-ep-189-multiple-subtitles/"
+node cli.js list
+node cli.js series "a-record-of-mortals-journey-to-immortality-season-5"
+node cli.js episode "https://donghuastream.org/a-record-of-mortals-journey-to-immortality-season-5-episode-13-ep-189-multiple-subtitles/"
+node cli.js post "https://donghuastream.org/a-record-of-mortals-journey-to-immortality-season-5-episode-13-ep-189-multiple-subtitles/"
 ```
 
 Semua perintah mengeluarkan JSON.

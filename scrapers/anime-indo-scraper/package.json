@@ -2,10 +2,11 @@
   "name": "anime-indo-scraper",
   "version": "1.0.0",
   "description": "Pure-HTTP scraper for anime-indo.lol (server-rendered template, no browser needed)",
-  "main": "scraper.js",
-  "bin": { "anime-indo": "scraper.js" },
+  "main": "src/index.js",
+  "bin": { "anime-indo": "./cli.js" },
   "scripts": {
-    "test": "node test/test.js"
+    "test": "node test/test.js",
+    "cli": "node cli.js"
   },
   "engines": { "node": ">=18" },
   "license": "MIT",

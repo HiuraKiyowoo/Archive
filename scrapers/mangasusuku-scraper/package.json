@@ -1,14 +1,15 @@
 {
-  "name": "susu-scraper",
+  "name": "mangasusuku-scraper",
   "version": "1.0.0",
   "description": "Zero-dep scraper for mangasusuku.com (WordPress + Madara 'mangareader' theme)",
   "type": "module",
   "main": "src/index.js",
   "bin": {
-    "susu": "./cli.js"
+    "mangasusuku": "./cli.js"
   },
   "scripts": {
-    "test": "node --test test/index.test.js"
+    "test": "node --test test/index.test.js",
+    "cli": "node cli.js"
   },
   "engines": {
     "node": ">=18"

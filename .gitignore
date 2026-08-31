@@ -1,0 +1,15 @@
+# dependency
+node_modules/
+
+# output & artefak lokal
+out/
+output/
+downloads/
+tmp/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

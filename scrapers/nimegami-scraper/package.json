@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Scraper nimegami.id via WordPress REST API + HTML download links",
   "type": "module",
-  "main": "scraper.js",
+  "main": "src/index.js",
+  "bin": { "nimegami": "./cli.js" },
   "scripts": {
-    "test": "node test/test.js"
+    "test": "node test/test.js",
+    "cli": "node cli.js"
   },
   "dependencies": {
     "axios": "^1.7.9",
@@ -13,5 +15,6 @@
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "license": "MIT"
 }

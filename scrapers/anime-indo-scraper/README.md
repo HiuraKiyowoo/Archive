@@ -55,13 +55,13 @@ node >= 18   # fetch global; TIDAK ADA dependency npm (dependencies: {})
 ## CLI
 
 ```bash
-node scraper.js home [page]
-node scraper.js search "keyword" [page]
-node scraper.js genre "action" [page]
-node scraper.js genres
-node scraper.js detail "https://anime-indo.lol/anime/<slug>/"
-node scraper.js episode "https://anime-indo.lol/<slug>-episode-<n>/"
-node scraper.js stream "https://anime-indo.lol/<slug>-episode-<n>/"
+node cli.js home [page]
+node cli.js search "keyword" [page]
+node cli.js genre "action" [page]
+node cli.js genres
+node cli.js detail "https://anime-indo.lol/anime/<slug>/"
+node cli.js episode "https://anime-indo.lol/<slug>-episode-<n>/"
+node cli.js stream "https://anime-indo.lol/<slug>-episode-<n>/"
 ```
 
 Output: JSON konsisten (envelope `{source, command, url, ok, pagination, data}`).
@@ -70,7 +70,7 @@ URL boleh relatif (mis. `/anime/bleach/`) — akan di-normalisasi.
 ## API modul
 
 ```js
-const { home, search, genre, genres, detail, episode, stream } = require('./scraper.js');
+const { home, search, genre, genres, detail, episode, stream } = require('./src/index.js');
 const r = await home(1);            // {data:{sections:{...}, counts:{...}}, pagination:{...}}
 const s = await search('bleach', 2);
 const g = await genre('romance', 1);

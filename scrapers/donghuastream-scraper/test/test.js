@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import * as s from '../scraper.js';
+import * as s from '../src/index.js';
 
 const EP_URL = 'https://donghuastream.org/a-record-of-mortals-journey-to-immortality-season-5-episode-13-ep-189-multiple-subtitles/';
 const SERIES_SLUG = 'a-record-of-mortals-journey-to-immortality-season-5';

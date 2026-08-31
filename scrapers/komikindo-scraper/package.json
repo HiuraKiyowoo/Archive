@@ -1,16 +1,15 @@
 {
-  "name": "maid-scraper",
+  "name": "komikindo-scraper",
   "version": "1.0.0",
-  "description": "Scraper maid.my.id (manga/manhwa Indonesia) via HTML + WordPress REST API",
+  "description": "Node.js scraper for komikindo.ch (baca komik bahasa Indonesia)",
   "type": "module",
   "main": "src/index.js",
-  "bin": { "maid": "./cli.js" },
+  "bin": { "komikindo": "./cli.js" },
   "scripts": {
     "test": "node test/test.js",
     "cli": "node cli.js"
   },
   "dependencies": {
-    "axios": "^1.7.9",
     "cheerio": "^1.0.0"
   },
   "engines": {
