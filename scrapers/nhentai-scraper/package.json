@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "bin": { "nhentai-scraper": "./cli.js" },
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test test/index.test.js",
     "cli": "node cli.js"
   },
   "engines": { "node": ">=18" },
