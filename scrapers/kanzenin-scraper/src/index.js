@@ -101,14 +101,18 @@ async function httpGet(url, { retries = 3 } = {}) {
 // ---------- helpers HTML ----------
 
 const stripTags = (s) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+const NAMED_ENT = {
+  ndash: "–", mdash: "—", rsquo: "'", lsquo: "'", ldquo: '"', rdquo: '"',
+  amp: "&", quot: '"', apos: "'", lt: "<", gt: ">", nbsp: " ",
+  raquo: "»", laquo: "«", hellip: "…", middot: "·", deg: "°", trade: "™",
+};
+// decode SEMUA entity numerik (&#038; &#8217; &#x27;) + named yang umum.
+// Site pakai &#038; di judul (contoh "Cookies &#038; Cream") — wajib di-decode.
 const decodeEnt = (s) =>
   (s || "")
-    .replace(/&#8211;|&ndash;/g, "–")
-    .replace(/&#8217;|&rsquo;/g, "'")
-    .replace(/&#8220;|&#8221;|&ldquo;|&rdquo;/g, '"')
-    .replace(/&amp;/g, "&")
-    .replace(/&raquo;/g, "»")
-    .replace(/&laquo;/g, "«");
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&([a-z]+);/gi, (m, n) => NAMED_ENT[n.toLowerCase()] ?? m);
 
 // "<title>Nama – kanzenin</title>" -> "Nama"
 function pageTitle(html) {
@@ -125,19 +129,48 @@ function allBsxItems(html) {
     const blk = m[1];
     const hrefM = blk.match(/href="([^"]+)"\s+title="([^"]*)"/);
     const url = hrefM ? hrefM[1] : null;
-    const title = hrefM ? decodeEnt(hrefM[2]) : null;
     const img = (blk.match(/<img[^>]+src="([^"]+)"/) || [])[1] || null;
     const status = (blk.match(/class="status\s+[^"]*">([^<]+)</) || [])[1] || null;
     const eps = (blk.match(/class="epxs">([^<]+)/) || [])[1] || null;
     const rating = (blk.match(/class="numscore">([^<]+)/) || [])[1] || null;
-    out.push({
+    const date = (blk.match(/class="epxdate">([^<]+)/) || [])[1] || null;
+    const type = (blk.match(/class="type\s+([A-Za-z]+)"/) || [])[1] || null;
+    // div.tt = nama series (di kartu chapter, attr title = "Series Chapter N")
+    const tt = (blk.match(/class="tt">\s*([\s\S]*?)\s*<\/div>/) || [])[1];
+    const title = decodeEnt(tt ? stripTags(tt) : hrefM ? hrefM[2] : "") || null;
+
+    // Kartu di section "Latest Update"/"Project Update" nunjuk ke URL CHAPTER,
+    // bukan /manga/<slug>/. Bedakan supaya konsumen gak salah pakai.
+    // Format chapter yang dipakai site: /<slug>-chapter-<n>/ (umum) DAN
+    // /<slug>-<n>/ tanpa kata "chapter" (langka, contoh /im-a-vampire-43/).
+    const isSeriesUrl = Boolean(url && /\/manga\/[^/]+\/?$/.test(url));
+    const chM = !isSeriesUrl && url
+      ? url.match(/^https:\/\/kanzenin\.info\/(.+?)-(?:chapter-)?(\d+(?:-\d+)?)\/$/)
+      : null;
+    const item = {
       url,
       title,
       image: img,
       status: status ? status.trim() : null,
+      type,
       latest: eps ? eps.trim() : null,
       rating: rating ? Number(rating) : null,
-    });
+      date: date ? date.trim() : null,
+      kind: chM ? "chapter" : "series",
+    };
+    if (chM) {
+      item.series_slug = chM[1];
+      item.series_url = `${BASE}/manga/${chM[1]}/`;
+      item.chapter_url = url;
+      item.chapter = Number(chM[2].replace("-", "."));
+    } else if (url) {
+      const sM = url.match(/\/manga\/([^/]+)\//);
+      if (sM) {
+        item.series_slug = sM[1];
+        item.series_url = url;
+      }
+    }
+    out.push(item);
   }
   return out;
 }
@@ -203,15 +236,168 @@ export async function byGenre(slug, { page = 1, limit = 100 } = {}) {
 }
 
 /**
- * Daftar genre (dari homepage).
+ * Daftar genre lengkap dari widget filter /manga/ (44 genre).
+ * Ambil ID (dipakai filter browse) + slug (dipakai byGenre) + nama.
+ * -> [{ id, slug, name }]
  */
 export async function genres() {
-  const { body } = await httpGet(`${BASE}/`);
-  const seen = new Map();
-  for (const m of body.matchAll(/href="https:\/\/kanzenin\.info\/genres\/([a-z0-9-]+)\/"[^>]*>\s*([^<]+?)\s*</g)) {
-    if (!seen.has(m[1])) seen.set(m[1], decodeEnt(m[2].trim()));
+  const { body } = await httpGet(`${BASE}/manga/`);
+  // widget filter: <input ... id="genre-1607" name="genre[]" value="1607"><label ...>Action</label>
+  const byName = new Map();
+  for (const m of body.matchAll(
+    /name="genre\[\]"\s+value="(\d+)">\s*<label[^>]*>([^<]+)<\/label>/g
+  )) {
+    byName.set(decodeEnt(m[2].trim()), Number(m[1]));
   }
-  return [...seen.entries()].map(([slug, name]) => ({ slug, name }));
+  // slug dari link /genres/<slug>/ (sidebar/footer), join by nama
+  const slugByName = new Map();
+  for (const m of body.matchAll(
+    /href="https:\/\/kanzenin\.info\/genres\/([a-z0-9-]+)\/"[^>]*>\s*([^<]+?)\s*</g
+  )) {
+    const nm = decodeEnt(m[2].trim());
+    if (!slugByName.has(nm)) slugByName.set(nm, m[1]);
+  }
+  return [...byName.entries()].map(([name, id]) => ({
+    id,
+    slug: slugByName.get(name) || name.toLowerCase().replace(/\s+/g, "-"),
+    name,
+  }));
+}
+
+/**
+ * Directory /manga/ dengan filter lengkap (advanced search theme).
+ * Pagination pakai `?page=N` (BUKAN /page/N/ atau ?paged=N — dua itu diam-diam
+ * balik page 1). 27 item/halaman.
+ *
+ * @param {object} o
+ *   o.genre   - array ID genre (dari genres().id) — semantik AND (irisan)
+ *   o.status  - "" | "ongoing" | "completed" | "hiatus"
+ *   o.type    - "" | "manga" | "manhwa" | "manhua" | "comic" | "novel"
+ *   o.order   - "" (default) | "title" | "titlereverse" | "update" | "latest" | "popular"
+ *   o.page    - 1-based
+ * @returns {Promise<{items, page, has_next, next_page}>}
+ */
+export async function browse({ genre = [], status = "", type = "", order = "", page = 1 } = {}) {
+  const p = new URLSearchParams();
+  for (const g of genre) p.append("genre[]", String(g));
+  if (status) p.set("status", status);
+  if (type) p.set("type", type);
+  if (order) p.set("order", order);
+  if (page > 1) p.set("page", String(page));
+  const qs = p.toString();
+  const url = `${BASE}/manga/${qs ? `?${qs}` : ""}`;
+  const { body } = await httpGet(url);
+  // tombol Next di div.hpage: <a href="?page=N&order=..." class="r">Next</a>
+  const nx = body.match(/href="\?page=(\d+)(?:&amp;|&)?[^"]*"\s+class="r"/);
+  return {
+    items: allBsxItems(body),
+    page,
+    has_next: Boolean(nx),
+    next_page: nx ? Number(nx[1]) : null,
+    url,
+  };
+}
+
+/**
+ * /manga/list-mode — SATU request berisi SELURUH katalog (2328 series per
+ * audit 2026-08-31), lengkap post_id, dikelompokkan per huruf.
+ * Jauh lebih efisien daripada allSeries() yang loop 28 huruf x pagination.
+ * -> { total, letters: {A: n, ...}, items: [{ post_id, slug, url, title, letter }] }
+ */
+export async function listMode() {
+  const { body } = await httpGet(`${BASE}/manga/list-mode`);
+  const i = body.indexOf('class="soralist"');
+  const seg = i >= 0 ? body.slice(i) : body;
+  const items = [];
+  const letters = {};
+  for (const g of seg.matchAll(
+    /<div class="blix"><span><a name="[^"]*">([^<]*)<\/a><\/span><ul>([\s\S]*?)<\/ul>/g
+  )) {
+    const letter = decodeEnt(g[1].trim());
+    let n = 0;
+    for (const m of g[2].matchAll(
+      /<a class="series[^"]*" rel="(\d+)" href="(https:\/\/kanzenin\.info\/manga\/([^"/]+)\/)">([^<]*)</g
+    )) {
+      items.push({
+        post_id: Number(m[1]),
+        slug: m[3],
+        url: m[2],
+        title: decodeEnt(m[4].trim()),
+        letter,
+      });
+      n++;
+    }
+    letters[letter] = n;
+  }
+  return { total: items.length, letters, items };
+}
+
+/**
+ * Homepage: 4 section (Popular Today / Project Update / Latest Update /
+ * Recommendation) + daftar rilis chapter terbaru.
+ * -> { sections: {name: [item]}, latest_chapters: [{series, chapter, url}] }
+ */
+export async function home() {
+  const { body } = await httpGet(`${BASE}/`);
+  const sections = {};
+  // setiap section: <h2>Nama</h2> ... <div class="listupd">...</div>
+  const heads = [...body.matchAll(/<(?:h[123])[^>]*>([^<]{2,60})<\/(?:h[123])>/g)];
+  for (let k = 0; k < heads.length; k++) {
+    const name = decodeEnt(heads[k][1].trim());
+    const from = heads[k].index;
+    const to = k + 1 < heads.length ? heads[k + 1].index : body.length;
+    const items = allBsxItems(body.slice(from, to));
+    if (items.length) sections[name] = items;
+  }
+  // rilis chapter terbaru: ambil dari kartu kind="chapter" (Latest/Project
+  // Update) — lebih akurat daripada regex URL, karena ada slug chapter yang
+  // gak pakai kata "chapter" (/im-a-vampire-43/).
+  const latest_chapters = [];
+  const seen = new Set();
+  for (const it of Object.values(sections).flat()) {
+    if (it.kind !== "chapter" || seen.has(it.chapter_url)) continue;
+    seen.add(it.chapter_url);
+    latest_chapters.push({
+      series: it.series_slug,
+      series_title: it.title,
+      chapter: it.chapter,
+      url: it.chapter_url,
+      date: it.date,
+    });
+  }
+  return { sections, latest_chapters };
+}
+
+/**
+ * /project/ — series yang digarap sendiri tim kanzenin.
+ * -> { items, count }
+ */
+export async function project() {
+  const { body } = await httpGet(`${BASE}/project/`);
+  const items = allBsxItems(body);
+  return { items, count: items.length };
+}
+
+/**
+ * RSS feed /feed/ — 10 rilis chapter terakhir + timestamp presisi.
+ * Paling murah buat polling update (3KB vs 19KB homepage).
+ * -> [{ title, url, date, iso }]
+ */
+export async function feed() {
+  const { body } = await httpGet(`${BASE}/feed/`);
+  const out = [];
+  for (const m of body.matchAll(
+    /<item>[\s\S]*?<title>([\s\S]*?)<\/title>[\s\S]*?<link>([^<]+)<\/link>[\s\S]*?<pubDate>([^<]+)<\/pubDate>/g
+  )) {
+    const title = decodeEnt(m[1].replace(/<!\[CDATA\[|\]\]>/g, "").trim());
+    out.push({
+      title,
+      url: m[2].trim(),
+      date: m[3].trim(),
+      iso: new Date(m[3].trim()).toISOString(),
+    });
+  }
+  return out;
 }
 
 /**
@@ -233,36 +419,68 @@ export async function series(slug) {
   };
   const title = pageTitle(body);
   const post_id = (body.match(/class="post-(\d+)/) || [])[1] || null;
+  // cover asli ada di div.thumb (itemprop=image) — BUKAN img.ts-post-image,
+  // itu punya kartu sidebar/recommendation.
+  const thumbBlk = body.match(/<div class="thumb"[^>]*>([\s\S]{0,600}?)<\/div>/);
   const image =
-    (body.match(/<img[^>]+class="ts-post-image[^"]*"[^>]+src="([^"]+)"/) || [])[1] ||
-    (body.match(/<img[^>]+src="([^"]+)"[^>]+class="ts-post-image/) || [])[1] ||
+    (thumbBlk && (thumbBlk[1].match(/<img[^>]+src="([^"]+)"/) || [])[1]) ||
+    (body.match(/<img[^>]+class="[^"]*wp-post-image[^"]*"[^>]+src="([^"]+)"/) || [])[1] ||
     null;
   const rating = (body.match(/itemprop="ratingValue" content="([\d.]+)"/) || [])[1] || null;
-  const followers = (body.match(/Followed by (\d+)/) || [])[1] || null;
+  const rating_count = (body.match(/itemprop="ratingCount" content="(\d+)"/) || [])[1] || null;
+  const followers = (body.match(/Followed by ([\d.,]+)/) || [])[1] || null;
   const views = get("Views");
+  const posted_at = (body.match(/itemprop="datePublished" datetime="([^"]+)"/) || [])[1] || null;
+  const updated_at = (body.match(/itemprop="dateModified" datetime="([^"]+)"/) || [])[1] || null;
+  const posted_by = (body.match(/<i itemprop="name">([^<]+)<\/i>/) || [])[1] || null;
   const desc =
     (body.match(/<div class="entry-content entry-content-single"[^>]*itemprop="description">([\s\S]*?)<\/div>/) || [])[1];
 
+  // Genre series HANYA di div.seriestugenre. Kalau scan seluruh body, widget
+  // filter sidebar (44 genre site) ikut kebawa.
   const gmap = new Map();
-  for (const m of body.matchAll(/href="https:\/\/kanzenin\.info\/genres\/([a-z0-9-]+)\/"[^>]*>\s*([^<]+?)\s*</g)) {
+  const gblk = body.match(/<div class="seriestugenre">([\s\S]*?)<\/div>/);
+  for (const m of (gblk ? gblk[1] : "").matchAll(
+    /href="https:\/\/kanzenin\.info\/genres\/([a-z0-9-]+)\/"[^>]*>\s*([^<]+?)\s*</g
+  )) {
     if (!gmap.has(m[1])) gmap.set(m[1], decodeEnt(m[2].trim()));
   }
 
-  // chapter list dari HTML + dedup (site punya chapter duplikat)
+  // chapter list dari HTML + dedup (site punya chapter duplikat).
+  // PENTING: <li> bisa punya class (contoh class="first-chapter" di series
+  // one-shot 1 chapter) — regex WAJIB toleran, kalau `<li data-num="N">` exact
+  // maka semua series 1-chapter balik 0 chapter.
   const rawCh = [
     ...body.matchAll(
-      /<li data-num="([^"]+)">\s*<div class="chbox">\s*<div class="eph-num">\s*<a href="([^"]+)">\s*<span class="chapternum">([^<]+)<\/span>\s*<span class="chapterdate">([^<]+)<\/span>/g
+      /<li data-num="([^"]+)"[^>]*>\s*<div class="chbox">\s*<div class="eph-num">\s*<a href="([^"]+)">\s*<span class="chapternum">([^<]+)<\/span>\s*<span class="chapterdate">([^<]+)<\/span>/g
     ),
-  ].map((m) => ({
-    number: Number(m[1]),
-    url: m[2],
-    title: decodeEnt(m[3].trim()),
-    date: decodeEnt(m[4].trim()),
-  }));
+  ].map((m) => {
+    // data-num BUKAN selalu angka bersih: bisa "45 End", "12.5", "7 Tamat".
+    // Ambil angka di depan; sisanya jadi label.
+    const raw = decodeEnt(m[1].trim());
+    const numM = raw.match(/^(\d+(?:[.,]\d+)?)/);
+    const suffix = numM ? raw.slice(numM[0].length).trim() : raw;
+    return {
+      number: numM ? Number(numM[1].replace(",", ".")) : null,
+      number_raw: raw,
+      label: suffix || null,
+      is_end: /\b(end|tamat|fin|final)\b/i.test(raw),
+      url: m[2],
+      title: decodeEnt(m[3].trim()),
+      date: decodeEnt(m[4].trim()),
+    };
+  });
   const seenNum = new Set();
-  const chapters = rawCh.filter((c) => (seenNum.has(c.number) ? false : (seenNum.add(c.number), true)));
-  // urutkan desc (terbaru duluan, sesuai site)
-  chapters.sort((a, b) => b.number - a.number);
+  const chapters = rawCh.filter((c) => {
+    // dedup by nomor (site punya entry duplikat). Kalau nomor gak keparse,
+    // pakai URL supaya entry-nya gak ikut kebuang.
+    const key = c.number === null ? `u:${c.url}` : `n:${c.number}`;
+    if (seenNum.has(key)) return false;
+    seenNum.add(key);
+    return true;
+  });
+  // urutkan desc (terbaru duluan, sesuai site); nomor null ditaruh belakang
+  chapters.sort((a, b) => (b.number ?? -Infinity) - (a.number ?? -Infinity));
 
   const fl = body.match(/epcurlast">Chapter ([\d.]+)/);
   const f0 = body.match(/epcurfirst">Chapter ([\d.]+)/);
@@ -282,8 +500,13 @@ export async function series(slug) {
     updated_on: get("Updated On"),
     views: views && views !== "?" ? views : null,
     rating: rating ? Number(rating) : null,
-    followers: followers ? Number(followers) : null,
+    rating_count: rating_count ? Number(rating_count) : null,
+    followers: followers ? Number(String(followers).replace(/[.,]/g, "")) : null,
     genres: [...gmap.values()],
+    genre_slugs: [...gmap.keys()],
+    posted_by,
+    posted_at,
+    updated_at,
     post_id: post_id ? Number(post_id) : null,
     first_chapter: f0 ? Number(f0[1]) : (chapters.length ? chapters[chapters.length - 1].number : null),
     latest_chapter: fl ? Number(fl[1]) : (chapters.length ? chapters[0].number : null),
@@ -293,7 +516,12 @@ export async function series(slug) {
 }
 
 /**
- * Slug chapter dari nomor: 67 -> "chapter-67", 67.5 -> "chapter-67-5".
+ * Slug chapter dari nomor: 67 -> "<slug>-chapter-67", 67.5 -> "...-chapter-67-5".
+ *
+ * CATATAN: ini best-effort. Sebagian chapter di site pakai slug yang gak
+ * mengikuti pola ini (suffix "-end", atau tanpa kata "chapter" sama sekali,
+ * contoh /im-a-vampire-43/). Untuk hasil pasti, ambil `url` dari
+ * series().chapters — jangan bikin URL sendiri.
  */
 export function chapterSlug(seriesSlug, number) {
   const n = String(number).replace(".", "-");
@@ -301,15 +529,24 @@ export function chapterSlug(seriesSlug, number) {
 }
 
 /**
- * Gambar halaman chapter. Filter ketat: hanya CDN reader (cdnasu.xyz)
- * karena halaman full dari ads/cover/sidebar.
+ * Gambar halaman chapter. Filter: di dalam #readerarea, ambil img yang
+ * host-nya BUKAN kanzenin.info (semua halaman reader dilayani CDN eksternal,
+ * sedangkan ads/cover/sidebar selalu di domain site).
  * -> { url, number, title, pages: [{n, url}], count }
  */
 export async function chapterImages(chapterUrl) {
   const url = chapterUrl.startsWith("http") ? chapterUrl : `${BASE}/${chapterUrl}/`;
   const { body } = await httpGet(url);
 
-  const mnum = url.match(/chapter-(\d+)(?:-(\d+))?/);
+  // Nomor chapter dari URL. Variasi nyata di site:
+  //   /x-chapter-5/        -> 5
+  //   /x-chapter-67-5/     -> 67.5   (desimal pakai dash)
+  //   /x-chapter-45-end/   -> 45     (suffix kata: end/tamat/final)
+  //   /x-43/               -> 43     (tanpa kata "chapter")
+  const tail = url.replace(/\/+$/, "").split("/").pop();
+  const mnum =
+    tail.match(/-chapter-(\d+)(?:-(\d+))?(?:-[a-z]+)?$/i) ||
+    tail.match(/-(\d+)(?:-(\d+))?(?:-[a-z]+)?$/i);
   const number = mnum
     ? mnum[2] !== undefined
       ? Number(`${mnum[1]}.${mnum[2]}`)

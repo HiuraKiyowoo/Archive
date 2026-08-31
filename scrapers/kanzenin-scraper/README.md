@@ -1,76 +1,99 @@
 # kanzenin-scraper
 
-Scraper zero-dependency untuk **kanzenin.info** (kanzenin — komik doujin bahasa Indonesia). Node.js >= 18, tanpa `npm install`.
+Scraper **zero-dependency** (Node ≥ 18) untuk [kanzenin.info](https://kanzenin.info) — komik doujin/manhwa bahasa Indonesia.
+
+Semua data diambil dari HTML server-side. Tidak ada API JSON, tidak ada browser headless, tidak ada dependency npm.
 
 ## Stack site (audit 2026-08-31)
 
-| Komponen | Detail |
+| Aspek | Nilai |
 |---|---|
-| CMS | WordPress 7.1 + theme `mangareader` (Madara clone) — **server-rendered HTML** |
-| WAF | **Cloudflare LENIENT** — 200 langsung, bahkan tanpa UA. Gak ada challenge |
-| Search | `/?s=<q>&paged=<n>` — 10/page |
-| AZ list | `/a-z-list/?show=<huruf\|0-9\|.\>` + `/a-z-list/page/<n>/` (per huruf) |
-| Genre | `/genres/<slug>/page/<n>/` (romance = 127 halaman, 44 genre) |
-| Series | `/manga/<slug>/` — **chapter list LANGSUNG di HTML** (gak perlu admin-ajax) |
-| Chapter duplikat | ADA (rooftop-sex-king: 80 `li` → 77 unik) — library auto-dedup |
-| Reader | `/<slug>-chapter-<n>/` — img di `#readerarea`, **CDN beda-beda** per series (cdnasu.xyz, cdn.uqni.net, dst) |
-| Filter img | img valid = dari domain DI LUAR kanzenin.info (ads/cover selalu di domain site) |
+| CMS | WordPress 7.1 + theme `mangareader` (keluarga Madara/TS) |
+| Rendering | HTML SSR penuh — chapter list ikut di HTML |
+| CDN/proteksi | Cloudflare, **lenient** (HTTP 200 tanpa UA, tanpa challenge/Turnstile) |
+| Encoding | `content-encoding: zstd` (dipakai `--compressed` di fallback curl) |
+| Katalog | **2.328 series** (list-mode) / 2.362 (walk browse) |
+| Genre | 44 |
+| Gambar reader | CDN eksternal berganti-ganti: `cdnasu.xyz`, `cdn.uqni.net` (sebagian plain HTTP) |
+| `admin-ajax.php` | ada, **tidak dipakai** (chapter list sudah di HTML) |
 
-## Cara pakai (CLI)
+## Install
 
 ```bash
-node cli.js search "love"                 # cari (10/page)
-node cli.js search "love" --page 2        # halaman 2
-node cli.js az A                          # AZ list (A-Z, 0-9, .)
-node cli.js az 0-9 --page 2
-node cli.js all --letters A,B             # semua series
-node cli.js genres                        # 44 genre
-node cli.js genre romance --page 3
-node cli.js series rooftop-sex-king       # detail + chapter (dedup, desc)
-node cli.js images torokeru-tsuma-chichi-chapter-2
-node cli.js download torokeru-tsuma-chichi-chapter-2 --out ./ch2
-node cli.js download torokeru-tsuma-chichi-chapter-2 --out ./ch2 --first 3
+node --version   # >= 18
+node cli.js home
 ```
 
-## Cara pakai (library)
+## Route yang dipetakan
 
-```js
-import { search, azList, allSeries, genres, byGenre, series,
-         chapterImages, chapterSlug, downloadChapter } from "./src/index.js";
-
-const r  = await search("love", { page: 2 });     // {items, page, max_page}
-const az = await azList("A", { page: 1 });        // {items, page, max_page, letter}
-const g  = await genres();                        // [{slug,name}] x44
-const gp = await byGenre("romance", { page: 2 }); // {items, page, max_page}
-const d  = await series("rooftop-sex-king");
-// -> { slug, title, url, image, status, type, released, author, artist,
-//      serialization, posted_on, updated_on, views, rating, followers, genres,
-//      post_id, first_chapter, latest_chapter, synopsis,
-//      chapters: [{number, url, title, date}] }  // DEDUP, urut desc
-const slug = chapterSlug("rooftop-sex-king", 78); // "rooftop-sex-king-chapter-78"
-const c  = await chapterImages(slug);             // {url, number, title, pages, count}
-await downloadChapter(slug, "./ch78");
-```
-
-## Catatan produksi
-
-- **CDN gambar beda-beda per series** (bahkan per chapter) — filter pakai
-  domain (bukan hardcode CDN): di area `#readerarea`, ambil img dari domain
-  luar kanzenin.info.
-- **Chapter bisa duplikat** di HTML — `series()` auto-dedup by number.
-- **Cakupan chapter beda per series**: rooftop-sex-king ch 2–78 (77 unik),
-  series lain bisa beda. `series().chapters` = yang beneran ada.
-- Rate-limit gak pernah ketemu; library bawa throttle 600ms + retry 3x +
-  backoff + fallback curl.
-- Test: `node --test test/index.test.js` (12 live tests).
-
-## Endpoints ringkas
-
-| Fungsi | Method | Path |
+| Fungsi | Route site | Pagination |
 |---|---|---|
-| Search | GET | `/?s=<q>&paged=<n>` |
-| AZ list | GET | `/a-z-list/?show=<A..Z\|0-9\|.\>` (+ `/page/<n>/`) |
-| Genre | GET | `/genres/<slug>/page/<n>/` |
-| Series | GET | `/manga/<slug>/` |
-| Reader | GET | `/<slug>-chapter-<n>/` (img di `#readerarea`) |
-| Cover | GET | `kanzenin.info/wp-content/uploads/...` |
+| `home()` | `/` | — |
+| `feed()` | `/feed/` | — |
+| `project()` | `/project/` | tidak ada |
+| `search(q)` | `/page/N/?s=q` | `max_page` |
+| `browse(filter)` | `/manga/?page=N&genre[]=&status=&type=&order=` | `has_next` / `next_page` |
+| `listMode()` | `/manga/?list` | 1 request, seluruh katalog |
+| `azList(letter)` | `/a-z-list/?show=A` (+ `&page=N`) | `max_page` |
+| `byGenre(slug)` | `/genres/<slug>/page/N/` | `max_page` |
+| `genres()` | widget filter di `/manga/` | — |
+| `series(slug)` | `/manga/<slug>/` | chapter list inline |
+| `chapterImages(slug)` | `/<slug>-chapter-<n>/` | — |
+
+## CLI
+
+```bash
+node cli.js home                                    # 4 section homepage + rilis terbaru
+node cli.js feed                                    # 10 rilis terakhir (timestamp ISO)
+node cli.js project                                 # series garapan sendiri (20)
+node cli.js genres                                  # 44 genre (id + slug + nama)
+
+node cli.js search "love" --page 2                  # pencarian
+node cli.js browse --type manhwa --status completed --order popular
+node cli.js browse --genre 64,1693 --page 2         # filter genre pakai ID (dari `genres`)
+node cli.js list-mode                               # SELURUH katalog 1 request (2328 series)
+node cli.js az A --page 2                           # per huruf
+node cli.js all A,B,C                               # gabung beberapa huruf
+node cli.js genre romance --page 5                  # per genre (pakai slug)
+
+node cli.js series rooftop-sex-king                 # metadata + semua chapter
+node cli.js images rooftop-sex-king-chapter-78      # URL gambar per halaman
+node cli.js download im-a-vampire-43 ./out --first 5
+node cli.js slug rooftop-sex-king 67.5              # -> rooftop-sex-king-chapter-67-5
+```
+
+Semua output JSON ke stdout, error ke stderr + exit code 1.
+
+## Filter `browse()`
+
+- `order`: `title`, `titlereverse`, `update`, `latest`, `popular` (kosong = default site)
+- `status`: `ongoing`, `completed`, `hiatus`
+- `type`: `manga`, `manhwa`, `manhua`
+- `genre`: array **ID numerik** (dari `genres()`), bisa lebih dari satu → AND
+
+Nilai live: `completed` 2.112 + `ongoing` 250 = 2.362 (= total katalog, tanpa overlap); `manhwa` 231; genre `Vanilla` 450; genre `Yuri` 1.
+
+## Catatan penting
+
+- **Ambil URL chapter dari `series().chapters[].url`**, jangan bikin sendiri. Slug chapter di site tidak konsisten: umumnya `-chapter-<n>`, tapi ada `-chapter-45-end` dan ada yang tanpa kata "chapter" (`/im-a-vampire-43/`). `chapterSlug()` cuma best-effort.
+- `data-num` di chapter list bisa non-numerik (`"45 End"`) → di-parse jadi `number` + `number_raw` + `label` + `is_end`.
+- Chapter duplikat ada di HTML site (contoh `rooftop-sex-king`: 81 `li` → 78 unik) → otomatis di-dedup by nomor.
+- Gambar reader difilter berdasarkan **host** (bukan domain `kanzenin.info`), bukan whitelist CDN, supaya tahan kalau CDN berganti.
+- Sebagian gambar dilayani lewat **HTTP biasa** (bukan HTTPS). `downloadChapter()` mengirim header `Referer`.
+- `listMode()` (2.328) sedikit lebih kecil dari walk `browse()` (2.362) — memang beda di sisi site, keduanya dipertahankan apa adanya.
+- Throttle default 600 ms antar request, retry + backoff pada 429/5xx. `fetch` dipakai lebih dulu, fallback ke `curl` kalau gagal.
+
+## Batasan jujur
+
+- Tidak ada endpoint komentar/rating write — read-only.
+- `/project/` tidak punya pagination di site, jadi terbatas 20 item yang ditampilkan.
+- Beberapa series me-listing chapter tidak lengkap di halaman series-nya (contoh `torokeru-tsuma-chichi` cuma listing ch-2 walau ch-1 bisa dibuka). Parser mengikuti data site apa adanya, bukan menambal.
+- Filter `order` yang tidak valid diabaikan site (fallback ke default), bukan error.
+
+## Test
+
+```bash
+node --test test/index.test.js
+```
+
+**26/26 pass** live (durasi ±35 s). Mencakup: 44 genre, semua filter browse + persistensi filter antar halaman, list-mode, home 4 section, feed, project, search 3 kasus, az-list, byGenre, metadata series lengkap, dedup chapter, one-shot 1 chapter, `data-num` non-numerik, 3 varian slug chapter, entity HTML, 404, dan download gambar nyata.

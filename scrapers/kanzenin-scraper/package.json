@@ -1,7 +1,7 @@
 {
   "name": "kanzenin-scraper",
-  "version": "1.0.0",
-  "description": "Zero-dep scraper for kanzenin.info (WordPress + Madara 'mangareader' theme)",
+  "version": "1.1.0",
+  "description": "Zero-dep scraper for kanzenin.info (WordPress + 'mangareader' theme): home, feed, project, search, browse+filter, list-mode, a-z, genres, series, chapter images",
   "type": "module",
   "main": "src/index.js",
   "bin": {
