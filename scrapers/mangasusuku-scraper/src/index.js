@@ -141,6 +141,10 @@ function allBsxItems(html) {
 }
 
 function maxPage(html) {
+  // 1) "Page X of Y" di <title> (format search: /page/N/?s=q)
+  const t = html.match(/<title>[^<]*Page\s+\d+\s+of\s+(\d+)/i);
+  if (t) return Number(t[1]);
+  // 2) link /page/N/ (format genre)
   let max = 1;
   for (const m of html.matchAll(/page\/(\d+)\//g)) max = Math.max(max, Number(m[1]));
   return max;
@@ -149,13 +153,16 @@ function maxPage(html) {
 // ---------- API ----------
 
 /**
- * Search manga/manhwa. Site gak punya pagination untuk search
- * (?s=...&paged=2 = 404) — semua hasil satu halaman.
+ * Search manga/manhwa. PUNYA pagination: `?s=<q>&paged=<n>` (10/page).
+ * `max_page` dari "Page X of Y" di <title> / page-numbers.
+ * @returns {Promise<{items, page, max_page}>}
  */
-export async function search(query, { limit = 50 } = {}) {
-  const url = `${BASE}/?s=${encodeURIComponent(query)}`;
+export async function search(query, { page = 1, limit = 50 } = {}) {
+  const q = encodeURIComponent(query);
+  const url = page <= 1 ? `${BASE}/?s=${q}` : `${BASE}/?s=${q}&paged=${page}`;
   const { body } = await httpGet(url);
-  return allBsxItems(body).slice(0, limit);
+  const items = allBsxItems(body).slice(0, limit);
+  return { items, page, max_page: maxPage(body) };
 }
 
 /**
@@ -265,22 +272,36 @@ export async function series(slug) {
     followers: followers ? Number(followers) : null,
     genres: [...gmap.values()],
     post_id: post_id ? Number(post_id) : null,
-    latest_chapter: latest ? Number(latest.replace(/\D/g, "")) || latest : null,
+    latest_chapter: latest ? Number(latest) || latest : null,
     synopsis: desc ? stripTags(desc) : null,
     chapters,
   };
 }
 
 /**
+ * Slug chapter dari nomor: 67 -> "chapter-67", 67.5 -> "chapter-67-5".
+ */
+export function chapterSlug(seriesSlug, number) {
+  const n = String(number).replace(".", "-");
+  return `${seriesSlug}-chapter-${n}`;
+}
+
+/**
  * Gambar halaman chapter: /<slug>-chapter-<n>/
  * -> { slug, number, url, title, pages: [{n, url}], count }
+ * number bisa desimal (ch-67.5 -> slug chapter-67-5).
  */
 export async function chapterImages(chapterUrl) {
   const url = chapterUrl.startsWith("http") ? chapterUrl : `${BASE}/${chapterUrl}/`;
   const { body } = await httpGet(url);
 
-  const mnum = url.match(/chapter-(\d+)(?:-|\b|$)/) || url.match(/chapter[-_]?(\d+)/);
-  const number = mnum ? Number(mnum[1]) : null;
+  // "chapter-67-5" = Chapter 67.5 (titik -> tanda hubung di slug)
+  const mnum = url.match(/chapter-(\d+)(?:-(\d+))?/);
+  const number = mnum
+    ? mnum[2] !== undefined
+      ? Number(`${mnum[1]}.${mnum[2]}`)
+      : Number(mnum[1])
+    : null;
 
   // area reader: <div id="readerarea"> ... <img src="https://cdn...">
   let seg = body;

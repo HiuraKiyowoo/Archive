@@ -9,6 +9,7 @@ import {
   byGenre,
   series,
   chapterImages,
+  chapterSlug,
 } from "../src/index.js";
 
 const SERIES = "solo-leveling";
@@ -23,15 +24,36 @@ test("genres: array non-kosong + slug unik", async () => {
   console.log(`  [genres] ${g.length} genre: ${g.slice(0, 5).map((x) => x.slug).join(", ")}`);
 }, { timeout: 60000 });
 
-test("search: query 'leveling' balik items dgn url /komik/", async () => {
-  const r = await search("leveling");
-  assert.ok(r.length > 0, "ada hasil");
-  for (const it of r.slice(0, 3)) {
+test("search page 1: {items, page, max_page} + url /komik/", async () => {
+  const r = await search("leveling", { page: 1 });
+  assert.ok(Array.isArray(r.items), "items array");
+  assert.ok(r.items.length > 0, "ada hasil");
+  assert.equal(r.page, 1);
+  assert.ok(r.max_page >= 1, "max_page >= 1");
+  for (const it of r.items.slice(0, 3)) {
     assert.ok(it.url && it.url.includes("/komik/"), "url /komik/");
     assert.ok(it.title, "title ada");
   }
-  assert.ok(r[0].url.includes("solo-leveling"), "hasil relevan #1");
-  console.log(`  [search] ${r.length} hasil, #1: ${r[0].title}`);
+  assert.ok(r.items[0].url.includes("solo-leveling"), "hasil relevan #1");
+  console.log(`  [search p1] ${r.items.length} hasil, max_page=${r.max_page}, #1: ${r.items[0].title}`);
+}, { timeout: 60000 });
+
+test("search page 2 (kata umum 'the'): beda item dari page 1 + max_page besar", async () => {
+  const p1 = await search("the", { page: 1 });
+  const p2 = await search("the", { page: 2 });
+  assert.ok(p1.max_page >= 2, `max_page>=2 (dapat ${p1.max_page})`);
+  const u1 = new Set(p1.items.map((x) => x.url));
+  const dup = p2.items.filter((x) => u1.has(x.url)).length;
+  assert.equal(dup, 0, "page 2 gak ada dup page 1");
+  assert.ok(p2.items.length > 0, "page 2 ada item");
+  console.log(`  [search p2] p1=${p1.items.length} p2=${p2.items.length} max_page=${p1.max_page} dup=${dup}`);
+}, { timeout: 60000 });
+
+test("search query gak ada: items kosong tanpa error", async () => {
+  const r = await search("zqxwc123notreal");
+  assert.ok(Array.isArray(r.items));
+  assert.equal(r.items.length, 0, "0 hasil");
+  console.log(`  [search 404] ${r.items.length} hasil (OK)`);
 }, { timeout: 60000 });
 
 test("azList('A'): items dgn url /komik/ + image + rating", async () => {
@@ -72,6 +94,20 @@ test("series detail: metadata lengkap + chapters dari admin-ajax", async () => {
   console.log(`  [series] ${d.title} | ${d.status} | ${d.chapters.length} ch | rating ${d.rating} | ${d.genres.length} genre`);
 }, { timeout: 90000 });
 
+test("series 2 (wireless-onahole): chapters penuh (bisa 100+)", async () => {
+  const d = await series("wireless-onahole");
+  assert.ok(d.title, "title");
+  assert.ok(d.chapters.length > 50, `banyak chapter (dapat ${d.chapters.length})`);
+  console.log(`  [series 2] ${d.title} | ${d.chapters.length} ch`);
+}, { timeout: 90000 });
+
+test("chapterSlug: integer + desimal", () => {
+  assert.equal(chapterSlug("solo-leveling", 155), "solo-leveling-chapter-155");
+  assert.equal(chapterSlug("wireless-onahole", 67.5), "wireless-onahole-chapter-67-5");
+  assert.equal(chapterSlug("x", "67.5"), "x-chapter-67-5");
+  console.log("  [slug] integer + desimal OK");
+});
+
 test("chapterImages: 10+ halaman URL absolut + number benar", async () => {
   const c = await chapterImages(CHAPTER);
   assert.equal(c.number, 155);
@@ -84,6 +120,14 @@ test("chapterImages: 10+ halaman URL absolut + number benar", async () => {
   // nomor halaman unik
   assert.equal(new Set(c.pages.map((p) => p.n)).size, c.count);
   console.log(`  [images] ${c.count} halaman, pertama: ${c.pages[0].url.slice(0, 55)}...`);
+}, { timeout: 60000 });
+
+test("chapterImages desimal (ch-67.5 -> chapter-67-5): number 67.5 + ada page", async () => {
+  const slug = chapterSlug("wireless-onahole", 67.5);
+  const c = await chapterImages(slug);
+  assert.equal(c.number, 67.5, "number desimal");
+  assert.ok(c.count >= 1, `ada halaman (dapat ${c.count})`);
+  console.log(`  [images desimal] ${slug} -> ${c.count} halaman, number=${c.number}`);
 }, { timeout: 60000 });
 
 test("download 1 gambar via curl: valid jpeg", async () => {

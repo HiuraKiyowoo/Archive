@@ -38,8 +38,8 @@ try {
   switch (cmd) {
     case "search": {
       const q = args.find((a) => !a.startsWith("--"));
-      if (!q) throw new Error("pakai: search <query>");
-      out(await search(q));
+      if (!q) throw new Error("pakai: search <query> [--page N]");
+      out(await search(q, { page: Number(flag(args, "page", 1)) }));
       break;
     }
     case "az": {
