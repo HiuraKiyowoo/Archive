@@ -299,9 +299,8 @@ export async function browse({ genre = [], status = "", type = "", order = "", p
 }
 
 /**
- * /manga/list-mode — SATU request berisi SELURUH katalog (2328 series per
- * audit 2026-08-31), lengkap post_id, dikelompokkan per huruf.
- * Jauh lebih efisien daripada allSeries() yang loop 28 huruf x pagination.
+ * /manga/?list — SATU request berisi SELURUH katalog (2362 series per
+ * 2026-08-31), dikelompokkan per huruf. Jauh lebih murah dari walk az-list.
  * -> { total, letters: {A: n, ...}, items: [{ post_id, slug, url, title, letter }] }
  */
 export async function listMode() {
