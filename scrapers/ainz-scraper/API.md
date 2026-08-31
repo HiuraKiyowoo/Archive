@@ -19,12 +19,17 @@ Base: `https://v3.ainzscans01.com`
 
 | Fungsi | Path |
 |---|---|
-| Search | `/api/search?q=<query>&page=<n>` |
+| Search/Browse | `/api/search?q=&page=&limit=&sort=&type=&comic_type=&genre=&status=` |
+|   &nbsp;&nbsp;sort | `popular`(default)·`latest`·`rating`·`views` |
+|   &nbsp;&nbsp;type | `COMIC`·`ANIME`·`NOVEL` |
+|   &nbsp;&nbsp;comic_type | `MANHUA`·`MANHWA`·`MANGA` |
+|   &nbsp;&nbsp;genre/status | slug (action, romance / ONGOING, COMPLETED) |
 | Home sections | `/api/comic/home-sections` |
 | Detail series | `/api/series/comic/<slug>` (juga `anime`, `novels`) |
 | Detail chapter | `/api/series/comic/<slug>/chapter/<chapter-slug>` |
 | Genre list | `/api/genres` |
-| Komentar | `/api/comments?entity_id=<id>&unit_id=<id>&limit=&offset=` |
+| Komentar | `/api/comments?entity_id=<series-id>&unit_id=<chapter-id>&limit=&offset=` |
+|   &nbsp;&nbsp;(balas) | `{items, total, limit, offset, has_more}` |
 | Settings | `/api/site/settings` |
 
 ## Shape respons

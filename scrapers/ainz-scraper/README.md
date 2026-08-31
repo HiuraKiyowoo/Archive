@@ -21,13 +21,26 @@ node --test test/index.test.js   # 7/7 live test (butuh internet + curl)
 ## CLI
 
 ```bash
-node cli.js search "leveling" --page 1     # cari comic
+node cli.js search "leveling" --page 1     # cari comic (bisa + filter)
+node cli.js browse --sort latest --type COMIC --comic-type MANHWA --genre action
+node cli.js genres                            # daftar genre (slug)
 node cli.js home                            # hot/popular/latest + slug chapter terbaru
 node cli.js series <slug>                   # detail series (metadata, genre, jumlah chapter)
-node cli.js chapters <slug>                 # daftar chapter (asc, 49 item)
+node cli.js chapters <slug>                 # daftar chapter (asc)
 node cli.js chapter <slug> <chapter-slug>   # detail chapter (jumlah halaman + prev/next)
 node cli.js images <slug> <chapter-slug>    # list URL gambar tiap halaman
+node cli.js download <slug> <chapter-slug> --out ./ch49 --first 3
 ```
+
+### Filter search/browse (terverifikasi live)
+| Param | Nilai |
+|---|---|
+| `--sort` | `popular` (default) · `latest` · `rating` · `views` |
+| `--type` | `COMIC` · `ANIME` · `NOVEL` |
+| `--comic-type` | `MANHUA` · `MANHWA` · `MANGA` |
+| `--genre` | slug dari `genres` (action, romance, fantasy, …) |
+| `--status` | `ONGOING` · `COMPLETED` · … |
+| `--page` / `--limit` | pagination (limit default 20, max total 3657+ comic) |
 
 Contoh nyata:
 ```bash
@@ -35,31 +48,45 @@ node cli.js images im-a-super-rich-guy-so-its-reasonable-for-me-to-be-a-scumbag 
 # 1  https://cdn.uqni.net/users/244/2026/08/001-511298.webp
 # 2  https://cdn.uqni.net/users/244/2026/08/002-700942.webp
 # ...
+node cli.js download im-a-super-rich-guy-so-its-reasonable-for-me-to-be-a-scumbag chapter-49
+# -> 001.webp 002.webp ... (12 strip vertikal)
 ```
 
 ## API Library
 
 ```js
-import { search, homeSections, seriesDetail, chapterList, chapterDetail, getChapterImages, imageUrl } from "./src/index.js";
+import { search, browse, genres, homeSections, seriesDetail, chapterList,
+         chapterDetail, getChapterImages, comments, imageUrl } from "./src/index.js";
 
 const r = await search("leveling", { page: 1 });          // { items, total, total_pages, ... }
+const b = await browse({ sort: "latest", comic_type: "MANHWA", genre: "action" });
+const g = await genres();                                  // [{id, slug, name}]
 const d = await seriesDetail("leveling-in-the-future");   // metadata + units (chapters)
 const list = await chapterList("leveling-in-the-future"); // [{number, slug, title, is_premium, ...}]
 const ch = await getChapterImages("leveling-in-the-future", "chapter-50");
 // -> { series, chapter, pages: [{n:1, url:"https://cdn..."}, ...], prev, next }
+const c = await comments({ entity_id: d.id, unit_id: ch.chapterId, limit: 20 });
 ```
 
 ## Endpoint (verifikasi live)
 
 | Fungsi | Path |
 |---|---|
-| Search | `GET /api/search?q=&page=` |
+| Search/Browse | `GET /api/search?q=&page=&limit=&sort=&type=&comic_type=&genre=&status=` |
 | Home sections | `GET /api/comic/home-sections` |
 | Detail series | `GET /api/series/{comic\|anime\|novels}/{slug}` |
 | Detail chapter | `GET /api/series/{type}/{slug}/chapter/{chapter-slug}` |
 | Genre | `GET /api/genres` |
-| Komentar | `GET /api/comments?entity_id=&unit_id=&limit=&offset=` |
+| Komentar | `GET /api/comments?entity_id=<series-id>&unit_id=<chapter-id>&limit=&offset=` |
 | Settings | `GET /api/site/settings` |
+
+### Search params terverifikasi
+- `sort`: `popular` (default) · `latest` · `rating` · `views` — value lain (name/created/followers) = ditolak/tidak ngaruh
+- `type`: `COMIC` · `ANIME` · `NOVEL` (total: 3654 / 2 / 1)
+- `comic_type`: `MANHUA` (1112) · `MANHWA` (1324) · `MANGA`
+- `genre`: slug (action → 2479, romance → beda total)
+- `status`: `ONGOING` → 3541
+- `limit`: dibatasi (default 20), `page`: 1-based; page terakhir partial, page > total_pages = `data: []`
 
 Detail lengkap shape respons: lihat `ainz_api.md` di repo parent / hasil rekon API.
 

@@ -86,14 +86,32 @@ async function httpGetJson(path, { tries = 3, spacingMs = 1200 } = {}) {
 // ---------------------------------------------------------------------------
 
 /**
- * Search comics by keyword.
+ * Search comics/anime/novels by keyword + filters.
+ *
+ * Verified filter params (live 2026-08-30):
+ *   q          — keyword (optional; empty = browse all)
+ *   page       — 1-based
+ *   limit      — per page (default 20)
+ *   sort       — "popular" (default) | "latest" | "rating" | "views"
+ *   type       — "COMIC" | "ANIME" | "NOVEL"  (content type)
+ *   comic_type — "MANHUA" | "MANHWA" | "MANGA" (comic subtype only)
+ *   genre      — genre slug (e.g. "action", "romance") — see genres()
+ *   status     — "ONGOING" | "COMPLETED" | ...
+ *
  * @param {string} query
- * @param {{page?: number, limit?: number}} opts
+ * @param {object} opts
  * @returns {Promise<{items: object[], page: number, limit: number, total: number, total_pages: number}>}
  */
-export function search(query, { page = 1, limit } = {}) {
-  const p = new URLSearchParams({ q: query, page: String(page) });
+export function search(query = "", { page = 1, limit, sort, type, comic_type, genre, status } = {}) {
+  const p = new URLSearchParams();
+  p.set("q", String(query).trim());
+  p.set("page", String(page));
   if (limit) p.set("limit", String(limit));
+  if (sort) p.set("sort", sort);
+  if (type) p.set("type", type);
+  if (comic_type) p.set("comic_type", comic_type);
+  if (genre) p.set("genre", genre);
+  if (status) p.set("status", status);
   return httpGetJson(`/api/search?${p.toString()}`).then((d) => ({
     items: d.data ?? [],
     page: d.page,
@@ -101,6 +119,32 @@ export function search(query, { page = 1, limit } = {}) {
     total: d.total,
     total_pages: d.total_pages,
   }));
+}
+
+/**
+ * Browse = search with empty query (same endpoint, q="").
+ */
+export function browse({ page = 1, limit, sort = "popular", type, comic_type, genre, status } = {}) {
+  return search("", { page, limit, sort, type, comic_type, genre, status });
+}
+
+/**
+ * List all genres -> [{id, slug, name}].
+ */
+export function genres() {
+  return httpGetJson("/api/genres");
+}
+
+/**
+ * Chapter/series comments.
+ * @param {object} opts { entity_id, unit_id, limit, offset }
+ *   entity_id = series id, unit_id = chapter id (dari chapterDetail.chapter.id)
+ */
+export function comments({ entity_id, unit_id, limit = 20, offset = 0 } = {}) {
+  const p = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (entity_id) p.set("entity_id", entity_id);
+  if (unit_id) p.set("unit_id", unit_id);
+  return httpGetJson(`/api/comments?${p.toString()}`);
 }
 
 /**
