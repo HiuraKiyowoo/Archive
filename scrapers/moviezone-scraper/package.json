@@ -1,0 +1,28 @@
+{
+  "name": "moviezone-scraper",
+  "version": "1.0.0",
+  "description": "Scraper zero-dependency untuk moviezone.web.id (API internal Next.js, data TMDB) - film & serial subtitle Indonesia",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "moviezone-scraper": "cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js",
+    "cli": "node cli.js"
+  },
+  "keywords": [
+    "scraper",
+    "movie",
+    "series",
+    "tmdb",
+    "moviezone",
+    "nextjs",
+    "indonesia"
+  ],
+  "license": "MIT",
+  "private": true
+}
