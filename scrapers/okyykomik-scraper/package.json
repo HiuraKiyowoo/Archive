@@ -1,0 +1,28 @@
+{
+  "name": "okyykomik-scraper",
+  "version": "1.0.0",
+  "description": "Scraper zero-dependency untuk www.okyykomik.my.id (Blogger Feed API) - manga/manhwa/manhua bahasa Indonesia",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "okyykomik-scraper": "cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js",
+    "cli": "node cli.js"
+  },
+  "keywords": [
+    "scraper",
+    "manga",
+    "manhwa",
+    "manhua",
+    "blogger",
+    "okyykomik",
+    "indonesia"
+  ],
+  "license": "MIT",
+  "private": true
+}
