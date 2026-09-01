@@ -1,0 +1,27 @@
+{
+  "name": "narashika-scraper",
+  "version": "1.0.0",
+  "description": "Scraper narashika.top (film, drama Korea/China, episode serial) - REST API WordPress untuk katalog + HTML untuk rating & player. Zero-dependency.",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "narashika": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/",
+    "check": "node --check src/http.js && node --check src/index.js && node --check cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "scraper",
+    "narashika",
+    "wordpress-rest",
+    "muvipro",
+    "film",
+    "drama-korea"
+  ],
+  "license": "MIT",
+  "private": true
+}
