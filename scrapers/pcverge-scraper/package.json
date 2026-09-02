@@ -1,0 +1,28 @@
+{
+  "name": "pcverge-scraper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Scraper pcverge.com (LK21/Layarkaca21) — REST WordPress + admin-ajax player + parser HTML. Zero dependency. PERINGATAN: katalog upstream memuat konten dewasa.",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "pcverge": "./cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js test/live.test.js",
+    "test:lokal": "node --test test/index.test.js",
+    "test:live": "node --test test/live.test.js",
+    "check": "node --check src/http.js && node --check src/index.js && node --check cli.js"
+  },
+  "keywords": [
+    "scraper",
+    "wordpress-rest",
+    "muvipro",
+    "admin-ajax",
+    "zero-dependency"
+  ],
+  "license": "UNLICENSED"
+}
