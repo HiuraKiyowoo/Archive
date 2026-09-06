@@ -1,0 +1,19 @@
+{
+  "name": "deepai-scraper",
+  "version": "1.0.0",
+  "description": "Zero-dependency pure Node.js client & scraper for DeepAI text2img generator (AI Text-to-Image)",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "keywords": [
+    "deepai",
+    "text2img",
+    "image-generator",
+    "scraper",
+    "ai"
+  ],
+  "author": "HiuraKiyowoo",
+  "license": "MIT"
+}
