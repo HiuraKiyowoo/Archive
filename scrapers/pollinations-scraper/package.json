@@ -1,0 +1,15 @@
+{
+  "name": "pollinations-scraper",
+  "version": "1.0.0",
+  "description": "Zero-dependency Node.js client for Pollinations.ai AI Image & Text Generator (Flux, Turbo, GPT-4o)",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "pollinations": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "author": "HiuraKiyowoo",
+  "license": "MIT"
+}
