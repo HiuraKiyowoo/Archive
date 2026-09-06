@@ -37,6 +37,9 @@ def get_cookies(domain=None, name=None):
     if name: params["name"] = name
     return send_command("get_cookies", params)
 
+def get_storage():
+    return send_command("get_storage")
+
 def get_page_content():
     return send_command("get_page_content")
 
@@ -48,6 +51,8 @@ if __name__ == "__main__":
     elif cmd == "cookies":
         domain = sys.argv[2] if len(sys.argv) > 2 else None
         print(get_cookies(domain))
+    elif cmd == "storage":
+        print(get_storage())
     elif cmd == "nav":
         url = sys.argv[2]
         print(navigate(url))

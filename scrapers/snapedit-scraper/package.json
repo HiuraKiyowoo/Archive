@@ -1,0 +1,22 @@
+{
+  "name": "snapedit-scraper",
+  "version": "1.0.0",
+  "description": "Zero-dependency SnapEdit Video Enhance reverse engineered API client",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "snapedit": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "keywords": [
+    "snapedit",
+    "video-enhance",
+    "ai-upscale",
+    "scraper",
+    "api"
+  ],
+  "author": "HiuraKiyowoo",
+  "license": "MIT"
+}
