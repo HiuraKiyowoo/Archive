@@ -1,0 +1,24 @@
+{
+  "name": "iloveimg-scraper",
+  "version": "1.0.0",
+  "description": "Pure HTTP zero-dependency Node.js client and scraper for iLoveIMG (Compress, Resize, Convert, Upscale, Remove BG)",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "iloveimg": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "keywords": [
+    "iloveimg",
+    "scraper",
+    "image-processing",
+    "compress",
+    "resize",
+    "upscale",
+    "zero-dep"
+  ],
+  "author": "HiuraKiyowoo",
+  "license": "MIT"
+}
