@@ -1,0 +1,23 @@
+{
+  "name": "text2video-generator",
+  "version": "1.0.0",
+  "description": "Kinetic AI Text-to-Video & Image-to-Video generator with anti-jitter camera motion engine",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "text2video": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "keywords": [
+    "text2video",
+    "image2video",
+    "ai-video",
+    "ken-burns",
+    "ffmpeg",
+    "flux"
+  ],
+  "author": "HiuraKiyowoo",
+  "license": "MIT"
+}
