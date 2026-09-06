@@ -1,0 +1,24 @@
+{
+  "name": "ryukomik-scraper",
+  "version": "1.0.0",
+  "description": "Multi-source manga & anime scraper for ryukomik.my.id (Pure HTTP, API-First, zero deps)",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "ryukomik": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "keywords": [
+    "scraper",
+    "manga",
+    "anime",
+    "ryukomik",
+    "komiku",
+    "doujindesu",
+    "komikid"
+  ],
+  "author": "HiuraKiyowoo",
+  "license": "MIT"
+}
