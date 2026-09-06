@@ -1,0 +1,22 @@
+{
+  "name": "text2image-generator",
+  "version": "1.0.0",
+  "description": "Multi-provider AI Text-to-Image client (FLUX.1 Schnell + Pollinations fallback, zero deps)",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "text2image": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "keywords": [
+    "text2image",
+    "flux",
+    "flux-schnell",
+    "pollinations",
+    "ai-image-generator"
+  ],
+  "author": "HiuraKiyowoo",
+  "license": "MIT"
+}
