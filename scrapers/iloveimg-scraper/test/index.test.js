@@ -1,10 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import { compressImage, resizeImage, convertToJpg, getSessionConfig } from "../src/index.js";
+import { 
+  getSessionConfig, 
+  compressImage, 
+  resizeImage, 
+  convertToJpg, 
+  cropImage,
+  upscaleImage,
+  removeBackground 
+} from "../src/index.js";
 
-// Create a small mock PNG image (red square) in memory:
-// 1x1 red PNG magic bytes
+// 1x1 mock red PNG
 const MOCK_PNG = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
   0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
@@ -19,7 +25,7 @@ test("1. getSessionConfig: retrieves valid token and task ID", async () => {
   assert.ok(session.token, "token should exist");
   assert.ok(session.taskId, "taskId should exist");
   assert.ok(session.server, "server should exist");
-  assert.match(session.workerUrl, /^https:\/\/api[0-9]+\.iloveimg\.com$/);
+  assert.match(session.workerUrl, /^https:\/\/api[0-9a-z]+\.iloveimg\.com$/);
 });
 
 test("2. compressImage: live compression of test image", async () => {
@@ -48,4 +54,28 @@ test("4. resizeImage: resizes image via percentage", async () => {
   assert.equal(res.success, true);
   assert.equal(res.tool, "resizeimage");
   assert.ok(res.output_size > 0);
+});
+
+test("5. cropImage: crops image to target coordinates", async () => {
+  const res = await cropImage(MOCK_PNG, { x: 0, y: 0, width: 1, height: 1 });
+  assert.equal(res.success, true);
+  assert.equal(res.tool, "cropimage");
+  assert.ok(res.output_size > 0);
+});
+
+test("6. upscaleImage: live 2x super resolution upscale", async () => {
+  const res = await upscaleImage(MOCK_PNG, 2);
+  assert.equal(res.success, true);
+  assert.equal(res.tool, "upscaleimage");
+  assert.equal(res.multiplier, 2);
+  assert.ok(res.output_size > 0);
+  assert.ok(Buffer.isBuffer(res.buffer));
+});
+
+test("7. removeBackground: AI background removal", async () => {
+  const res = await removeBackground(MOCK_PNG);
+  assert.equal(res.success, true);
+  assert.equal(res.tool, "removebackground");
+  assert.ok(res.output_size > 0);
+  assert.ok(Buffer.isBuffer(res.buffer));
 });

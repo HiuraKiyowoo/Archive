@@ -1,18 +1,20 @@
 # iLoveIMG Scraper & Image Processing API Client
 
-Zero-dependency, pure Node.js (>= 18) client & scraper untuk memproses gambar gratis via **iLoveIMG** (Compress, Resize, Convert JPG, Upscale, Crop) tanpa perlu API key berbayar atau browser headless.
+Zero-dependency, pure Node.js (>= 18) client & scraper untuk memproses gambar gratis via **iLoveIMG** (Compress, Resize, Convert JPG, Upscale, Crop, Remove BG) tanpa perlu API key berbayar atau browser headless.
 
 ---
 
 ## Fitur Utama
 
 - **100% Pure HTTP / Zero Dependencies**: Menggunakan native Node.js `fetch`, `FormData`, dan `Blob`. Bebas Chromium / Puppeteer.
-- **Auto-Handshake**: Otomatis mengekstrak temporary JWT token publik, server worker (`api1`..`api33`), dan dynamic task ID dari web iLoveIMG.
+- **Auto-Handshake**: Otomatis mengekstrak temporary JWT token publik, server worker (`api1g`..`api34g`), dan dynamic task ID dari web iLoveIMG.
 - **Dukungan Operasi Lengkap**:
   - `compressImage()`: Kompresi gambar (JPG, PNG, GIF, SVG, WebP).
   - `resizeImage()`: Ubah ukuran gambar berdasarkan persentase atau dimensi piksel eksak.
-  - `convertToJpg()`: Konversi aneka format gambar (PNG, WebP, GIF, SVG) ke format JPG/PNG.
+  - `convertToJpg()`: Konversi format gambar (PNG, WebP, GIF, SVG) ke format JPG/PNG.
+  - `cropImage()`: Potong area gambar berdasarkan koordinat x, y, width, height.
   - `upscaleImage()`: AI Super-resolution upscaling (2x atau 4x).
+  - `removeBackground()`: AI Background Removal (potong latar belakang otomatis).
 - **CLI & Module Ready**: Siap dipanggil sebagai script CLI terminal atau di-import sebagai ES Module di script Node.js lainnya.
 
 ---
@@ -22,9 +24,9 @@ Zero-dependency, pure Node.js (>= 18) client & scraper untuk memproses gambar gr
 ```
 scrapers/iloveimg-scraper/
 ├── src/
-│   └── index.js         # Core library (getSessionConfig, uploadFile, processTask, downloadResult)
+│   └── index.js         # Core library (compress, resize, convert, crop, upscale, remove-bg)
 ├── test/
-│   └── index.test.js    # Live automated tests (node --test)
+│   └── index.test.js    # Live automated tests (7/7 tests passed)
 ├── cli.js               # Command-line interface tool
 ├── package.json
 └── README.md
@@ -35,17 +37,23 @@ scrapers/iloveimg-scraper/
 ## Penggunaan CLI
 
 ```bash
-# Kompres gambar
+# 1. Kompres gambar
 node cli.js compress input.png output.png
 
-# Resize gambar ke lebar tertentu (misal 800px)
+# 2. Resize gambar ke lebar tertentu (misal 800px)
 node cli.js resize photo.jpg 800 resized_800.jpg
 
-# Konversi format ke JPG
+# 3. Konversi format ke JPG
 node cli.js convert banner.webp banner.jpg
 
-# Upscale resolusi gambar (2x atau 4x)
+# 4. Potong (crop) gambar (x, y, w, h)
+node cli.js crop banner.jpg 10 10 300 300 cropped.jpg
+
+# 5. Upscale resolusi gambar (2x atau 4x HD)
 node cli.js upscale icon.png 2 upscale_2x.png
+
+# 6. Hapus background gambar (AI Cutout)
+node cli.js remove-bg product.jpg product_nobg.png
 ```
 
 ---
@@ -54,20 +62,26 @@ node cli.js upscale icon.png 2 upscale_2x.png
 
 ```javascript
 import fs from "node:fs";
-import { compressImage, resizeImage, convertToJpg, upscaleImage } from "iloveimg-scraper";
+import { 
+  compressImage, 
+  resizeImage, 
+  convertToJpg, 
+  cropImage, 
+  upscaleImage, 
+  removeBackground 
+} from "iloveimg-scraper";
 
-// 1. Kompresi gambar dari Buffer atau Path
+// 1. Kompresi gambar
 const res = await compressImage("./photo.jpg");
-console.log(`Ukuran hemat: ${res.original_size} -> ${res.output_size} (${res.ratio})`);
 await fs.promises.writeFile("./compressed.jpg", res.buffer);
 
-// 2. Resize gambar
-const resized = await resizeImage("./photo.jpg", { resize_mode: "pixels", pixels_width: 1080 });
-await fs.promises.writeFile("./resized_1080.jpg", resized.buffer);
+// 2. AI Upscale 2x HD
+const hd = await upscaleImage("./avatar.png", 2);
+await fs.promises.writeFile("./avatar_hd.png", hd.buffer);
 
-// 3. Konversi format ke JPG
-const converted = await convertToJpg("./sticker.webp");
-await fs.promises.writeFile("./sticker.jpg", converted.buffer);
+// 3. AI Hapus background
+const cutout = await removeBackground("./portrait.jpg");
+await fs.promises.writeFile("./cutout.png", cutout.buffer);
 ```
 
 ---
@@ -80,7 +94,10 @@ ok 1 - 1. getSessionConfig: retrieves valid token and task ID
 ok 2 - 2. compressImage: live compression of test image
 ok 3 - 3. convertToJpg: converts PNG to JPG
 ok 4 - 4. resizeImage: resizes image via percentage
-1..4
-# pass 4
+ok 5 - 5. cropImage: crops image to target coordinates
+ok 6 - 6. upscaleImage: live 2x super resolution upscale
+ok 7 - 7. removeBackground: AI background removal
+1..7
+# pass 7
 # fail 0
 ```

@@ -25,7 +25,7 @@ export async function getSessionConfig(tool = "compress-image") {
 
   const cfg = JSON.parse(cfgMatch[1]);
   const token = cfg.token;
-  const servers = cfg.servers || ["api1"];
+  const servers = cfg.servers || ["api1g"];
   const server = servers[0];
 
   const taskIdMatch = html.match(/ilovepdfConfig\.taskId = '([^']+)';/);
@@ -176,6 +176,27 @@ export async function resizeImage(fileInput, options = { resize_mode: "percentag
 }
 
 /**
+ * High-level: Crop Image
+ * options: { x: 0, y: 0, width: 300, height: 300 }
+ */
+export async function cropImage(fileInput, options = { x: 0, y: 0, width: 100, height: 100 }) {
+  const session = await getSessionConfig("crop-image");
+  const uploaded = await uploadFile(session, fileInput);
+  const result = await processTask(session, "cropimage", uploaded, options);
+  const outputBuffer = await downloadResult(session);
+
+  return {
+    success: true,
+    tool: "cropimage",
+    options,
+    original_size: uploaded.filesize,
+    output_size: outputBuffer.length,
+    buffer: outputBuffer,
+    meta: result
+  };
+}
+
+/**
  * High-level: Convert Image to JPG/PNG
  */
 export async function convertToJpg(fileInput, format = "jpg") {
@@ -201,8 +222,28 @@ export async function convertToJpg(fileInput, format = "jpg") {
 export async function upscaleImage(fileInput, multiplier = 2) {
   const session = await getSessionConfig("upscale-image");
   const uploaded = await uploadFile(session, fileInput);
-  const result = await processTask(session, "upscaleimage", uploaded, { multiplier: String(multiplier) });
-  const outputBuffer = await downloadResult(session);
+
+  const form = new FormData();
+  form.append("task", session.taskId);
+  form.append("server_filename", uploaded.server_filename);
+  form.append("scale", String(multiplier));
+
+  const res = await fetch(`${session.workerUrl}/v1/upscale`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${session.token}`,
+      "User-Agent": USER_AGENT
+    },
+    body: form
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Upscale failed (${res.status}): ${errText}`);
+  }
+
+  const arrayBuf = await res.arrayBuffer();
+  const outputBuffer = Buffer.from(arrayBuf);
 
   return {
     success: true,
@@ -210,7 +251,43 @@ export async function upscaleImage(fileInput, multiplier = 2) {
     multiplier,
     original_size: uploaded.filesize,
     output_size: outputBuffer.length,
-    buffer: outputBuffer,
-    meta: result
+    buffer: outputBuffer
+  };
+}
+
+/**
+ * High-level: Remove Background Image (AI Cutout)
+ */
+export async function removeBackground(fileInput) {
+  const session = await getSessionConfig("remove-background");
+  const uploaded = await uploadFile(session, fileInput);
+
+  const form = new FormData();
+  form.append("task", session.taskId);
+  form.append("server_filename", uploaded.server_filename);
+
+  const res = await fetch(`${session.workerUrl}/v1/removebackground`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${session.token}`,
+      "User-Agent": USER_AGENT
+    },
+    body: form
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Remove background failed (${res.status}): ${errText}`);
+  }
+
+  const arrayBuf = await res.arrayBuffer();
+  const outputBuffer = Buffer.from(arrayBuf);
+
+  return {
+    success: true,
+    tool: "removebackground",
+    original_size: uploaded.filesize,
+    output_size: outputBuffer.length,
+    buffer: outputBuffer
   };
 }
