@@ -1,0 +1,21 @@
+{
+  "name": "deepfakemaker-scraper",
+  "version": "1.0.0",
+  "description": "Zero-dependency Node.js client for deepfakemaker.io AI tools (face swap, image gen, video tools)",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "deepfakemaker": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "keywords": [
+    "deepfakemaker",
+    "face-swap",
+    "ai-image",
+    "scraper",
+    "zero-dependency"
+  ],
+  "license": "MIT"
+}
