@@ -1,0 +1,22 @@
+{
+  "name": "nanobananana-scraper",
+  "version": "1.0.0",
+  "description": "Zero-dependency Node.js client for nanobananana.com (Nano Banana image generation) — direct HTTP API, session-cookie auth, no extension needed",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "nanobananana": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "keywords": [
+    "nanobanana",
+    "nano-banana",
+    "gemini",
+    "image-generation",
+    "scraper",
+    "zero-dependency"
+  ],
+  "license": "MIT"
+}
