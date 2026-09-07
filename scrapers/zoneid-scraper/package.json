@@ -1,0 +1,20 @@
+{
+  "name": "zoneid-scraper",
+  "version": "1.0.0",
+  "description": "Zero-dependency Node.js client for my.zone.id (Zone.ID member area) — public featured/official subdomain catalogue + token-gated member APIs",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "zoneid": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "keywords": [
+    "zone.id",
+    "subdomain",
+    "scraper",
+    "zero-dependency"
+  ],
+  "license": "MIT"
+}
