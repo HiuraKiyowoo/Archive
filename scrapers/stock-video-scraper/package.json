@@ -1,0 +1,11 @@
+{
+  "name": "stock-video-scraper",
+  "version": "1.0.0",
+  "description": "Zero-dependency Node.js scraper for free stock video HD (Mixkit, Videezy, SplitShire, Videvo)",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": { "stock-video": "./cli.js" },
+  "scripts": { "test": "node --test test/index.test.js" },
+  "keywords": ["stock-video", "scraper", "free-video", "hd", "4k", "mixkit", "videezy"],
+  "license": "ISC"
+}
